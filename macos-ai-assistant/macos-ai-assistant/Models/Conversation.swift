@@ -1,0 +1,18 @@
+import Foundation
+import SwiftData
+
+@Model
+final class Conversation {
+    var id: UUID
+    var title: String
+    var createdAt: Date
+    @Relationship(deleteRule: .cascade, inverse: \Message.conversation)
+    var messages: [Message]
+
+    init(title: String = "") {
+        self.id = UUID()
+        self.title = title
+        self.createdAt = Date()
+        self.messages = []
+    }
+}

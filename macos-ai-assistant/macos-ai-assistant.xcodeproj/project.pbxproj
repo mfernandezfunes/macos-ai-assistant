@@ -1,0 +1,647 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B97E70712F8B71550084A7DD /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = B97E70702F8B71550084A7DD /* MarkdownUI */; };
+		B97E70742F8B75EF0084A7DD /* Vapor in Frameworks */ = {isa = PBXBuildFile; productRef = B97E70732F8B75EF0084A7DD /* Vapor */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B9679F482F8B687E00EB9A0B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B9679F302F8B687C00EB9A0B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B9679F372F8B687C00EB9A0B;
+			remoteInfo = "macos-ai-assistant";
+		};
+		B9679F522F8B687E00EB9A0B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B9679F302F8B687C00EB9A0B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B9679F372F8B687C00EB9A0B;
+			remoteInfo = "macos-ai-assistant";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		B9679F382F8B687C00EB9A0B /* macos-ai-assistant.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "macos-ai-assistant.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B9679F472F8B687E00EB9A0B /* macos-ai-assistantTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "macos-ai-assistantTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B9679F512F8B687E00EB9A0B /* macos-ai-assistantUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "macos-ai-assistantUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		B9679F3A2F8B687C00EB9A0B /* macos-ai-assistant */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "macos-ai-assistant";
+			sourceTree = "<group>";
+		};
+		B9679F4A2F8B687E00EB9A0B /* macos-ai-assistantTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "macos-ai-assistantTests";
+			sourceTree = "<group>";
+		};
+		B9679F542F8B687E00EB9A0B /* macos-ai-assistantUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "macos-ai-assistantUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B9679F352F8B687C00EB9A0B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B97E70712F8B71550084A7DD /* MarkdownUI in Frameworks */,
+				B97E70742F8B75EF0084A7DD /* Vapor in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B9679F442F8B687E00EB9A0B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B9679F4E2F8B687E00EB9A0B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		B9679F2F2F8B687C00EB9A0B = {
+			isa = PBXGroup;
+			children = (
+				B9679F3A2F8B687C00EB9A0B /* macos-ai-assistant */,
+				B9679F4A2F8B687E00EB9A0B /* macos-ai-assistantTests */,
+				B9679F542F8B687E00EB9A0B /* macos-ai-assistantUITests */,
+				B9679F392F8B687C00EB9A0B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B9679F392F8B687C00EB9A0B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B9679F382F8B687C00EB9A0B /* macos-ai-assistant.app */,
+				B9679F472F8B687E00EB9A0B /* macos-ai-assistantTests.xctest */,
+				B9679F512F8B687E00EB9A0B /* macos-ai-assistantUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		B9679F372F8B687C00EB9A0B /* macos-ai-assistant */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B9679F5B2F8B687E00EB9A0B /* Build configuration list for PBXNativeTarget "macos-ai-assistant" */;
+			buildPhases = (
+				B9679F342F8B687C00EB9A0B /* Sources */,
+				B9679F352F8B687C00EB9A0B /* Frameworks */,
+				B9679F362F8B687C00EB9A0B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				B9679F3A2F8B687C00EB9A0B /* macos-ai-assistant */,
+			);
+			name = "macos-ai-assistant";
+			packageProductDependencies = (
+				B97E70702F8B71550084A7DD /* MarkdownUI */,
+				B97E70732F8B75EF0084A7DD /* Vapor */,
+			);
+			productName = "macos-ai-assistant";
+			productReference = B9679F382F8B687C00EB9A0B /* macos-ai-assistant.app */;
+			productType = "com.apple.product-type.application";
+		};
+		B9679F462F8B687E00EB9A0B /* macos-ai-assistantTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B9679F5E2F8B687E00EB9A0B /* Build configuration list for PBXNativeTarget "macos-ai-assistantTests" */;
+			buildPhases = (
+				B9679F432F8B687E00EB9A0B /* Sources */,
+				B9679F442F8B687E00EB9A0B /* Frameworks */,
+				B9679F452F8B687E00EB9A0B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B9679F492F8B687E00EB9A0B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B9679F4A2F8B687E00EB9A0B /* macos-ai-assistantTests */,
+			);
+			name = "macos-ai-assistantTests";
+			packageProductDependencies = (
+			);
+			productName = "macos-ai-assistantTests";
+			productReference = B9679F472F8B687E00EB9A0B /* macos-ai-assistantTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		B9679F502F8B687E00EB9A0B /* macos-ai-assistantUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B9679F612F8B687E00EB9A0B /* Build configuration list for PBXNativeTarget "macos-ai-assistantUITests" */;
+			buildPhases = (
+				B9679F4D2F8B687E00EB9A0B /* Sources */,
+				B9679F4E2F8B687E00EB9A0B /* Frameworks */,
+				B9679F4F2F8B687E00EB9A0B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B9679F532F8B687E00EB9A0B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B9679F542F8B687E00EB9A0B /* macos-ai-assistantUITests */,
+			);
+			name = "macos-ai-assistantUITests";
+			packageProductDependencies = (
+			);
+			productName = "macos-ai-assistantUITests";
+			productReference = B9679F512F8B687E00EB9A0B /* macos-ai-assistantUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B9679F302F8B687C00EB9A0B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2640;
+				LastUpgradeCheck = 2640;
+				TargetAttributes = {
+					B9679F372F8B687C00EB9A0B = {
+						CreatedOnToolsVersion = 26.4;
+					};
+					B9679F462F8B687E00EB9A0B = {
+						CreatedOnToolsVersion = 26.4;
+						TestTargetID = B9679F372F8B687C00EB9A0B;
+					};
+					B9679F502F8B687E00EB9A0B = {
+						CreatedOnToolsVersion = 26.4;
+						TestTargetID = B9679F372F8B687C00EB9A0B;
+					};
+				};
+			};
+			buildConfigurationList = B9679F332F8B687C00EB9A0B /* Build configuration list for PBXProject "macos-ai-assistant" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = B9679F2F2F8B687C00EB9A0B;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				B97E706F2F8B71550084A7DD /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
+				B97E70722F8B75EF0084A7DD /* XCRemoteSwiftPackageReference "vapor" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = B9679F392F8B687C00EB9A0B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B9679F372F8B687C00EB9A0B /* macos-ai-assistant */,
+				B9679F462F8B687E00EB9A0B /* macos-ai-assistantTests */,
+				B9679F502F8B687E00EB9A0B /* macos-ai-assistantUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B9679F362F8B687C00EB9A0B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B9679F452F8B687E00EB9A0B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B9679F4F2F8B687E00EB9A0B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B9679F342F8B687C00EB9A0B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B9679F432F8B687E00EB9A0B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B9679F4D2F8B687E00EB9A0B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B9679F492F8B687E00EB9A0B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B9679F372F8B687C00EB9A0B /* macos-ai-assistant */;
+			targetProxy = B9679F482F8B687E00EB9A0B /* PBXContainerItemProxy */;
+		};
+		B9679F532F8B687E00EB9A0B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B9679F372F8B687C00EB9A0B /* macos-ai-assistant */;
+			targetProxy = B9679F522F8B687E00EB9A0B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		B9679F592F8B687E00EB9A0B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		B9679F5A2F8B687E00EB9A0B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		B9679F5C2F8B687E00EB9A0B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Apple AI Assistant";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourname.macos-ai-assistant.macos-ai-assistant";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		B9679F5D2F8B687E00EB9A0B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Apple AI Assistant";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourname.macos-ai-assistant.macos-ai-assistant";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		B9679F5F2F8B687E00EB9A0B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourname.macos-ai-assistant.macos-ai-assistantTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/macos-ai-assistant.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/macos-ai-assistant";
+			};
+			name = Debug;
+		};
+		B9679F602F8B687E00EB9A0B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourname.macos-ai-assistant.macos-ai-assistantTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/macos-ai-assistant.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/macos-ai-assistant";
+			};
+			name = Release;
+		};
+		B9679F622F8B687E00EB9A0B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourname.macos-ai-assistant.macos-ai-assistantUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = "macos-ai-assistant";
+			};
+			name = Debug;
+		};
+		B9679F632F8B687E00EB9A0B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourname.macos-ai-assistant.macos-ai-assistantUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = "macos-ai-assistant";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B9679F332F8B687C00EB9A0B /* Build configuration list for PBXProject "macos-ai-assistant" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B9679F592F8B687E00EB9A0B /* Debug */,
+				B9679F5A2F8B687E00EB9A0B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B9679F5B2F8B687E00EB9A0B /* Build configuration list for PBXNativeTarget "macos-ai-assistant" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B9679F5C2F8B687E00EB9A0B /* Debug */,
+				B9679F5D2F8B687E00EB9A0B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B9679F5E2F8B687E00EB9A0B /* Build configuration list for PBXNativeTarget "macos-ai-assistantTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B9679F5F2F8B687E00EB9A0B /* Debug */,
+				B9679F602F8B687E00EB9A0B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B9679F612F8B687E00EB9A0B /* Build configuration list for PBXNativeTarget "macos-ai-assistantUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B9679F622F8B687E00EB9A0B /* Debug */,
+				B9679F632F8B687E00EB9A0B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B97E706F2F8B71550084A7DD /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.4.1;
+			};
+		};
+		B97E70722F8B75EF0084A7DD /* XCRemoteSwiftPackageReference "vapor" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/vapor/vapor.git";
+			requirement = {
+				kind = exactVersion;
+				version = 4.115.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B97E70702F8B71550084A7DD /* MarkdownUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B97E706F2F8B71550084A7DD /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
+			productName = MarkdownUI;
+		};
+		B97E70732F8B75EF0084A7DD /* Vapor */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B97E70722F8B75EF0084A7DD /* XCRemoteSwiftPackageReference "vapor" */;
+			productName = Vapor;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = B9679F302F8B687C00EB9A0B /* Project object */;
+}
