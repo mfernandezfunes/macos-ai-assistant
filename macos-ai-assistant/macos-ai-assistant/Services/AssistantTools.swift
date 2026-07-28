@@ -91,7 +91,12 @@ struct SpotlightSearchTool: Tool {
 
         let results = await SpotlightSearch.run(term: term, limit: max(1, min(arguments.limit, 10)))
         guard !results.isEmpty else {
-            return "No files matching '\(term)' were found on this Mac."
+            return """
+                No files matching '\(term)' were found. Note: if the file is in \
+                Documents, Downloads, Desktop, iCloud, or a cloud drive, the app \
+                may need Full Disk Access (System Settings > Privacy & Security > \
+                Full Disk Access) to see it.
+                """
         }
 
         let list = results
@@ -132,9 +137,10 @@ enum SpotlightSearch {
                 query.predicate = NSPredicate(
                     format: "kMDItemDisplayName CONTAINS[cd] %@ OR kMDItemTextContent CONTAINS[cd] %@",
                     term, term)
-                query.sortDescriptors = [
-                    NSSortDescriptor(key: NSMetadataItemFSContentChangeDateKey, ascending: false)
-                ]
+                // No sortDescriptors: NSMetadataQuery silently drops items that
+                // lack the sort attribute (e.g. cloud placeholders without a
+                // content-change date), so sorting here would hide real matches.
+                // We rank in Swift instead.
 
                 var observer: NSObjectProtocol?
                 // Guard against double-resume if the notification fires more than once.
