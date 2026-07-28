@@ -112,14 +112,23 @@ struct SpotlightResult: Sendable {
 /// Wraps `NSMetadataQuery` in a one-shot async call. The query must run on the
 /// main run loop, so we hop to the main actor and bridge completion via a
 /// notification observer.
+///
+/// Spotlight can return tens of thousands of hits (a bare `CONTAINS` matches
+/// file contents too), so we gather a bounded candidate pool and re-rank it in
+/// Swift: name matches beat content-only matches, and files under the user's
+/// home folder beat system/`~Library` noise. Only then do we take `limit`.
 enum SpotlightSearch {
+    /// How many raw hits to inspect before ranking. Large enough to surface the
+    /// good matches buried under content hits, small enough to stay cheap.
+    private static let candidateCap = 300
+
     static func run(term: String, limit: Int) async -> [SpotlightResult] {
         await withCheckedContinuation { continuation in
             Task { @MainActor in
                 let query = NSMetadataQuery()
                 query.searchScopes = [NSMetadataQueryLocalComputerScope]
                 // Match against display name or textual content, case/diacritic
-                // insensitive.
+                // insensitive. Name matches are preferred at ranking time.
                 query.predicate = NSPredicate(
                     format: "kMDItemDisplayName CONTAINS[cd] %@ OR kMDItemTextContent CONTAINS[cd] %@",
                     term, term)
@@ -140,18 +149,53 @@ enum SpotlightSearch {
                     guard !resumed else { return }
                     resumed = true
 
-                    let items = (0..<query.resultCount).prefix(limit).compactMap { index -> SpotlightResult? in
-                        guard let item = query.result(at: index) as? NSMetadataItem else { return nil }
-                        let name = item.value(forAttribute: NSMetadataItemDisplayNameKey) as? String
-                            ?? "Unknown"
-                        let path = item.value(forAttribute: NSMetadataItemPathKey) as? String ?? ""
-                        return SpotlightResult(name: name, path: path)
-                    }
-                    continuation.resume(returning: Array(items))
+                    let candidates = (0..<query.resultCount)
+                        .prefix(Self.candidateCap)
+                        .compactMap { index -> SpotlightResult? in
+                            guard let item = query.result(at: index) as? NSMetadataItem else {
+                                return nil
+                            }
+                            let name = item.value(forAttribute: NSMetadataItemDisplayNameKey)
+                                as? String ?? "Unknown"
+                            let path = item.value(forAttribute: NSMetadataItemPathKey)
+                                as? String ?? ""
+                            return SpotlightResult(name: name, path: path)
+                        }
+
+                    let ranked = Self.rank(Array(candidates), term: term).prefix(limit)
+                    continuation.resume(returning: Array(ranked))
                 }
 
                 query.start()
             }
         }
+    }
+
+    /// Orders candidates so the most relevant land first: a term match in the
+    /// file name outranks a content-only match, and files under the user's home
+    /// folder outrank system/`~Library` files. Stable so Spotlight's recency
+    /// ordering breaks ties.
+    static func rank(_ results: [SpotlightResult], term: String) -> [SpotlightResult] {
+        let home = NSHomeDirectory()
+        let library = home + "/Library"
+
+        func score(_ result: SpotlightResult) -> Int {
+            var score = 0
+            if result.name.range(of: term, options: [.caseInsensitive, .diacriticInsensitive]) != nil {
+                score += 100  // name match: the strong signal
+            }
+            if result.path.hasPrefix(home) { score += 10 }   // prefer the user's files
+            if result.path.hasPrefix(library) { score -= 8 }  // demote ~/Library noise
+            return score
+        }
+
+        return results
+            .enumerated()
+            .sorted { lhs, rhs in
+                let ls = score(lhs.element), rs = score(rhs.element)
+                if ls != rs { return ls > rs }
+                return lhs.offset < rhs.offset  // stable: keep Spotlight's order
+            }
+            .map(\.element)
     }
 }

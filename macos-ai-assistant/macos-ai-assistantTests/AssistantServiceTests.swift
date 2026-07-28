@@ -157,4 +157,27 @@ final class AssistantServiceTests: XCTestCase {
         }
         XCTAssertFalse(hasInstructions, "No tools means no synthetic instructions entry")
     }
+
+    // MARK: - Spotlight ranking
+
+    /// A file whose name matches the term should outrank a file that only
+    /// matches on content, even if the content match is more recent.
+    func testSpotlightRankingPrefersNameMatchOverContentMatch() {
+        let contentOnly = SpotlightResult(name: "Bookmarks", path: "/tmp/Bookmarks")
+        let nameMatch = SpotlightResult(name: "README.md", path: "/tmp/README.md")
+        let ranked = SpotlightSearch.rank([contentOnly, nameMatch], term: "README")
+        XCTAssertEqual(ranked.first?.name, "README.md")
+    }
+
+    /// Between two name matches, the one under the user's home folder should
+    /// outrank one buried in ~/Library.
+    func testSpotlightRankingPrefersHomeOverLibrary() {
+        let home = NSHomeDirectory()
+        let inLibrary = SpotlightResult(
+            name: "README.md", path: home + "/Library/Caches/README.md")
+        let inDocuments = SpotlightResult(
+            name: "README.md", path: home + "/Documents/README.md")
+        let ranked = SpotlightSearch.rank([inLibrary, inDocuments], term: "README")
+        XCTAssertEqual(ranked.first?.path, home + "/Documents/README.md")
+    }
 }
