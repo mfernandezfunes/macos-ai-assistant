@@ -119,6 +119,12 @@ final class AssistantService {
         await aiManager.prewarm(instructions: instructions)
     }
 
+    /// Generates a short conversation title via guided generation. Returns nil
+    /// if the model is unavailable or generation fails.
+    func generateTitle(for firstMessage: String) async -> String? {
+        await aiManager.generateTitle(for: firstMessage)
+    }
+
     // MARK: - Private
 
     private func makeRequest(messages: [ChatMessage]) throws -> URLRequest {

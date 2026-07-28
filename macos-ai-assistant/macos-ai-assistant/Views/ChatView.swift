@@ -74,10 +74,37 @@ struct ChatView: View {
         }
     }
 
+    /// Role/persona presets from Apple's on-device prompting guidance.
+    private static let personaPresets: [(name: String, instructions: String)] = [
+        ("English Teacher",
+         "You are an expert English teacher. Provide feedback on the person's sentence to help them improve clarity."),
+        ("Cowboy",
+         "You are a lively cowboy who loves to chat about horses and make jokes. Provide feedback on the person's sentence to help them improve clarity."),
+        ("Professional",
+         "Communicate as an experienced interior designer consulting with a client. Occasionally reference design elements like harmony, proportion, or focal points."),
+        ("Medieval Scholar",
+         "Communicate as a learned scribe from a medieval library. Use slightly archaic language (\"thou shalt,\" \"wherein,\" \"henceforth\") but keep it readable."),
+        ("Senior Engineer",
+         "You are a senior software engineer who values mentoring junior developers. Explain your reasoning clearly and suggest best practices."),
+    ]
+
     private var instructionsEditor: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("System Instructions")
-                .font(.headline)
+            HStack {
+                Text("System Instructions")
+                    .font(.headline)
+                Spacer()
+                Menu("Presets") {
+                    ForEach(Self.personaPresets, id: \.name) { preset in
+                        Button(preset.name) {
+                            conversation.systemInstructions = preset.instructions
+                            save()
+                        }
+                    }
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+            }
             Text("Guides how the assistant responds in this conversation. Applied on every message.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -120,10 +147,19 @@ struct ChatView: View {
         modelContext.insert(userMsg)
         save()
 
-        // Set conversation title from first message
+        // Set conversation title from first message. Use guided generation for
+        // a concise title, falling back to a truncated prompt if unavailable.
         if conversation.title.isEmpty {
             conversation.title = String(text.prefix(50))
             save()
+            let firstMessage = text
+            Task {
+                if let title = await service.generateTitle(for: firstMessage),
+                   !title.isEmpty {
+                    conversation.title = title
+                    save()
+                }
+            }
         }
 
         // Build messages array for the API, prepending the conversation's

@@ -217,9 +217,13 @@ class VaporServerManager: ObservableObject {
                         return
                     }
 
+                    // Trim old turns so instructions + prompts fit the context
+                    // window before building the transcript.
+                    let fitted = await aiManager.fitToContextWindow(chatRequest.messages)
+
                     // Get the last message as the current prompt. The route guards
                     // against an empty messages array before this runs.
-                    guard let lastMessage = chatRequest.messages.last else {
+                    guard let lastMessage = fitted.last else {
                         let errorData = Self.sseErrorPayload(
                             message: "No messages provided", type: "invalid_request_error")
                         try await writer.write(.buffer(ByteBuffer(string: errorData)))
@@ -230,7 +234,7 @@ class VaporServerManager: ObservableObject {
 
                     // Convert previous messages (excluding the last one) to transcript
                     let previousMessages =
-                        chatRequest.messages.count > 1 ? Array(chatRequest.messages.dropLast()) : []
+                        fitted.count > 1 ? Array(fitted.dropLast()) : []
                     let transcriptEntries = await aiManager.convertMessagesToTranscript(
                         previousMessages)
 
@@ -253,7 +257,6 @@ class VaporServerManager: ObservableObject {
                     }
 
                     // Get the streaming response from the session
-                    print("DEBUG: Getting streaming response")
                     let responseStream = session.streamResponse(to: currentPrompt, options: options)
 
                     // Response metadata

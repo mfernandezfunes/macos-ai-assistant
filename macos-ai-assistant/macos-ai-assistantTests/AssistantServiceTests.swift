@@ -60,4 +60,45 @@ final class AssistantServiceTests: XCTestCase {
         XCTAssertEqual(
             request.url?.absoluteString, "http://127.0.0.1:9999/v1/chat/completions")
     }
+
+    // MARK: - Context window trimming
+
+    func testFitToContextWindowKeepsShortHistoryIntact() async {
+        let manager = OnDeviceModelManager()
+        let messages = [
+            ChatMessage(role: "user", content: "Hello"),
+            ChatMessage(role: "assistant", content: "Hi there"),
+            ChatMessage(role: "user", content: "How are you?"),
+        ]
+        let fitted = await manager.fitToContextWindow(messages)
+        XCTAssertEqual(fitted.count, 3, "Short histories should not be trimmed")
+    }
+
+    func testFitToContextWindowDropsOldestTurnsFirst() async {
+        let manager = OnDeviceModelManager()
+        // Each message is ~1,500 tokens (≈4,500 chars / 3); several exceed the
+        // ~3,072-token budget, forcing older turns to be dropped.
+        let big = String(repeating: "a", count: 4_500)
+        let messages = (0..<6).map { ChatMessage(role: "user", content: "\($0) \(big)") }
+        let fitted = await manager.fitToContextWindow(messages)
+
+        XCTAssertLessThan(fitted.count, messages.count, "Old turns should be dropped")
+        XCTAssertFalse(fitted.isEmpty, "The most recent turn must always survive")
+        XCTAssertEqual(
+            fitted.last?.content, messages.last?.content,
+            "The newest message (current prompt) must be kept")
+    }
+
+    func testFitToContextWindowAlwaysKeepsSystemMessage() async {
+        let manager = OnDeviceModelManager()
+        let big = String(repeating: "b", count: 4_500)
+        var messages: [ChatMessage] = [ChatMessage(role: "system", content: "You are a pirate.")]
+        messages += (0..<6).map { ChatMessage(role: "user", content: "\($0) \(big)") }
+        let fitted = await manager.fitToContextWindow(messages)
+
+        XCTAssertEqual(
+            fitted.first?.role.lowercased(), "system",
+            "System instructions must be preserved and kept first")
+        XCTAssertLessThan(fitted.count, messages.count)
+    }
 }

@@ -2,14 +2,90 @@ import Foundation
 import FoundationModels
 import Vapor
 
+// MARK: - Guided-generation types
+
+/// Structured output for auto-generating a short conversation title.
+@Generable
+struct ConversationTitle {
+    @Guide(description: "A concise chat title, 2 to 5 words, no quotes and no trailing punctuation.")
+    var title: String
+}
+
 // MARK: - Apple Intelligence Manager
 
 /// Manager for Apple Intelligence on-device language model
 actor OnDeviceModelManager {
     private let model: SystemLanguageModel
 
+    /// The system model's context window is ~4,096 tokens shared across
+    /// instructions + prompts + outputs. We trim older turns to stay under it
+    /// and reserve headroom for the response.
+    static let contextTokenLimit = 4_096
+    static let reservedResponseTokens = 1_024
+
     init() {
         self.model = SystemLanguageModel.default
+    }
+
+    /// Rough token estimate (~4 characters per token for Latin scripts, ~1 for
+    /// CJK). Deliberately conservative so we trim before the framework throws
+    /// a context-size error.
+    static func estimatedTokens(_ text: String) -> Int {
+        max(1, text.count / 3)
+    }
+
+    /// Trims the message history so instructions + prompts fit the context
+    /// window, always keeping any leading system messages and the most recent
+    /// turns (including the current prompt). Preserves ordering.
+    func fitToContextWindow(
+        _ messages: [ChatMessage],
+        reservingTokens: Int = OnDeviceModelManager.reservedResponseTokens
+    ) -> [ChatMessage] {
+        let budget = Self.contextTokenLimit - reservingTokens
+        guard budget > 0, !messages.isEmpty else { return messages }
+
+        // System messages steer every turn and are small — always keep them.
+        let systemMessages = messages.filter { $0.role.lowercased() == "system" }
+        let conversational = messages.filter { $0.role.lowercased() != "system" }
+
+        var used = systemMessages.reduce(0) { $0 + Self.estimatedTokens($1.content) }
+        var kept: [ChatMessage] = []
+        // Walk newest-to-oldest so we drop the oldest turns first.
+        for message in conversational.reversed() {
+            let cost = Self.estimatedTokens(message.content)
+            // Always keep the most recent message (the current prompt).
+            if !kept.isEmpty && used + cost > budget { break }
+            kept.append(message)
+            used += cost
+        }
+        kept.reverse()
+
+        return systemMessages + kept
+    }
+
+    /// Generates a short, descriptive title for a conversation using guided
+    /// generation. Returns nil if the model is unavailable or generation fails.
+    func generateTitle(for firstMessage: String) async -> String? {
+        guard isModelAvailable().available else { return nil }
+
+        let session = LanguageModelSession(
+            model: model,
+            instructions: """
+                Generate a short, descriptive title for a conversation that begins \
+                with the person's message. Use 2 to 5 words. Do not use quotes or \
+                end punctuation.
+                """
+        )
+        do {
+            let response = try await session.respond(
+                to: firstMessage,
+                generating: ConversationTitle.self
+            )
+            let title = response.content.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            return title.isEmpty ? nil : title
+        } catch {
+            return nil
+        }
     }
 
     /// Check if the model is available
@@ -134,7 +210,13 @@ actor OnDeviceModelManager {
                 .serviceUnavailable, reason: reason ?? "Apple Intelligence model is not available")
         }
 
-        guard let lastMessage = messages.last else {
+        guard messages.last != nil else {
+            throw Abort(.badRequest, reason: "No messages provided")
+        }
+
+        // Trim old turns so instructions + prompts fit the context window.
+        let fitted = fitToContextWindow(messages)
+        guard let lastMessage = fitted.last else {
             throw Abort(.badRequest, reason: "No messages provided")
         }
 
@@ -142,7 +224,7 @@ actor OnDeviceModelManager {
         let currentPrompt = lastMessage.content
 
         // Convert previous messages (excluding the last one) to transcript
-        let previousMessages = messages.count > 1 ? Array(messages.dropLast()) : []
+        let previousMessages = fitted.count > 1 ? Array(fitted.dropLast()) : []
         let transcriptEntries = convertMessagesToTranscript(previousMessages)
 
         // Create transcript with conversation history
@@ -170,6 +252,10 @@ actor OnDeviceModelManager {
 
             let content = response.content
             return content
+        } catch let error as LanguageModelSession.GenerationError {
+            // Model-side failures (guardrail violations, context overflow, etc.)
+            // are client-facing problems, not internal server errors.
+            throw Abort(.unprocessableEntity, reason: error.localizedDescription)
         } catch {
             throw Abort(
                 .internalServerError,
