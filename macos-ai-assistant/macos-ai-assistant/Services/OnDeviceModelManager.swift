@@ -62,6 +62,23 @@ actor OnDeviceModelManager {
         }.sorted()
     }
 
+    /// Preload the on-device model into memory to reduce the latency of the
+    /// first response. Safe to call repeatedly; no-op if the model is
+    /// unavailable. Optionally pass the conversation's system instructions so
+    /// the warmed session matches the one used for the real request.
+    func prewarm(instructions: String? = nil) {
+        guard isModelAvailable().available else { return }
+
+        let session: LanguageModelSession
+        if let instructions,
+           !instructions.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            session = LanguageModelSession(model: model, instructions: instructions)
+        } else {
+            session = LanguageModelSession(model: model)
+        }
+        session.prewarm()
+    }
+
     /// Convert chat messages to transcript entries
     func convertMessagesToTranscript(_ messages: [ChatMessage]) -> [Transcript.Entry] {
         var entries: [Transcript.Entry] = []

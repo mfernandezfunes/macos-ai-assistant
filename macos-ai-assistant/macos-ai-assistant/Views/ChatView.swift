@@ -10,6 +10,7 @@ struct ChatView: View {
     @State private var streamingText = ""
     @State private var isStreaming = false
     @State private var errorMessage: String?
+    @State private var showingInstructions = false
 
     private let service = AssistantService()
 
@@ -52,6 +53,53 @@ struct ChatView: View {
             }
         }
         .navigationTitle(conversation.title.isEmpty ? "New Conversation" : conversation.title)
+        .task(id: conversation.id) {
+            // Prewarm the on-device model when a conversation opens so the first
+            // token arrives faster.
+            await service.prewarm(instructions: conversation.systemInstructions)
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showingInstructions.toggle()
+                } label: {
+                    Label("Instructions", systemImage: conversation.systemInstructions.isEmpty
+                          ? "text.badge.plus" : "text.badge.checkmark")
+                }
+                .help("Set system instructions for this conversation")
+                .popover(isPresented: $showingInstructions, arrowEdge: .bottom) {
+                    instructionsEditor
+                }
+            }
+        }
+    }
+
+    private var instructionsEditor: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("System Instructions")
+                .font(.headline)
+            Text("Guides how the assistant responds in this conversation. Applied on every message.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            TextEditor(text: $conversation.systemInstructions)
+                .font(.body)
+                .frame(width: 360, height: 160)
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(.separatorColor)))
+            HStack {
+                Button("Clear") {
+                    conversation.systemInstructions = ""
+                    save()
+                }
+                .disabled(conversation.systemInstructions.isEmpty)
+                Spacer()
+                Button("Done") {
+                    save()
+                    showingInstructions = false
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(16)
     }
 
     private var sortedMessages: [Message] {
@@ -78,8 +126,16 @@ struct ChatView: View {
             save()
         }
 
-        // Build messages array for the API
-        let allMessages = sortedMessages
+        // Build messages array for the API, prepending the conversation's
+        // system instructions (if any) so the server maps them to
+        // Transcript.Instructions.
+        var allMessages: [ChatMessage] = []
+        let instructions = conversation.systemInstructions
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if !instructions.isEmpty {
+            allMessages.append(ChatMessage(role: "system", content: instructions))
+        }
+        allMessages += sortedMessages
             .map { ChatMessage(role: $0.role, content: $0.content) }
 
         // Stream response

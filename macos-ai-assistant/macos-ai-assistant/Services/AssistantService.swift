@@ -113,6 +113,12 @@ final class AssistantService {
         }
     }
 
+    /// Preloads the on-device model to reduce time-to-first-token. Runs
+    /// in-process against the shared manager (no HTTP round-trip needed).
+    func prewarm(instructions: String? = nil) async {
+        await aiManager.prewarm(instructions: instructions)
+    }
+
     // MARK: - Private
 
     private func makeRequest(messages: [ChatMessage]) throws -> URLRequest {

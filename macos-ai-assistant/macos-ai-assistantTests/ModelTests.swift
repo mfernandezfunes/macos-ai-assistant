@@ -29,6 +29,22 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(conv2.title, "Test")
     }
 
+    func testConversationPersistsSystemInstructions() throws {
+        let ctx = container.mainContext
+        let conv = Conversation(title: "Persona", systemInstructions: "Talk like a pirate.")
+        ctx.insert(conv)
+        try ctx.save()
+
+        let fetched = try ctx.fetch(FetchDescriptor<Conversation>())
+        let conv2 = try XCTUnwrap(fetched.first)
+        XCTAssertEqual(conv2.systemInstructions, "Talk like a pirate.")
+    }
+
+    func testConversationDefaultsToEmptyInstructions() throws {
+        let conv = Conversation(title: "Plain")
+        XCTAssertEqual(conv.systemInstructions, "")
+    }
+
     func testMessageBelongsToConversation() throws {
         let ctx = container.mainContext
         let conv = Conversation(title: "Chat")
