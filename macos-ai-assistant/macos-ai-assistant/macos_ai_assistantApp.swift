@@ -4,6 +4,7 @@ import SwiftData
 @main
 struct macos_ai_assistantApp: App {
     @StateObject private var serverManager = VaporServerManager()
+    @StateObject private var toolSettings = ToolSettings.shared
 
     var body: some Scene {
         WindowGroup {
@@ -25,5 +26,9 @@ struct macos_ai_assistantApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
+
+        Settings {
+            ToolSettingsView(settings: toolSettings)
+        }
     }
 }

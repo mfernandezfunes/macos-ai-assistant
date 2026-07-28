@@ -155,9 +155,20 @@ actor OnDeviceModelManager {
         session.prewarm()
     }
 
-    /// Convert chat messages to transcript entries
-    func convertMessagesToTranscript(_ messages: [ChatMessage]) -> [Transcript.Entry] {
+    /// Convert chat messages to transcript entries.
+    ///
+    /// The enabled tools must be advertised to the model through the transcript's
+    /// `Instructions` entry — passing `tools:` to the session only supplies the
+    /// callable implementations, not the schemas the model reasons over. Without
+    /// the definitions here the model can't discover the tools and will
+    /// hallucinate answers instead of calling them.
+    func convertMessagesToTranscript(
+        _ messages: [ChatMessage],
+        tools: [any Tool] = []
+    ) -> [Transcript.Entry] {
         var entries: [Transcript.Entry] = []
+        let toolDefinitions = tools.map { Transcript.ToolDefinition(tool: $0) }
+        var toolsAttached = false
 
         // Process all messages in order
         for message in messages {
@@ -165,11 +176,13 @@ actor OnDeviceModelManager {
 
             switch message.role.lowercased() {
             case "system":
-                // Convert system messages to instructions
+                // Convert system messages to instructions, attaching the tool
+                // definitions to the first instructions entry we emit.
                 let instructions = Transcript.Instructions(
                     segments: [.text(textSegment)],
-                    toolDefinitions: []
+                    toolDefinitions: toolsAttached ? [] : toolDefinitions
                 )
+                toolsAttached = true
                 entries.append(.instructions(instructions))
 
             case "user":
@@ -194,6 +207,17 @@ actor OnDeviceModelManager {
                 )
                 entries.append(.prompt(prompt))
             }
+        }
+
+        // If the conversation carried no system message, the tools were never
+        // attached above. Prepend a minimal instructions entry so the model can
+        // still discover them.
+        if !toolsAttached && !toolDefinitions.isEmpty {
+            let instructions = Transcript.Instructions(
+                segments: [],
+                toolDefinitions: toolDefinitions
+            )
+            entries.insert(.instructions(instructions), at: 0)
         }
 
         return entries
@@ -223,15 +247,22 @@ actor OnDeviceModelManager {
         // Get the last message as the current prompt
         let currentPrompt = lastMessage.content
 
-        // Convert previous messages (excluding the last one) to transcript
+        // Resolve the user-enabled tools once so the same set is advertised in
+        // the transcript and wired into the session.
+        let tools = AssistantToolFactory.makeTools(for: ToolSettings.currentEnabledIDs())
+
+        // Convert previous messages (excluding the last one) to transcript,
+        // advertising the tool definitions so the model can discover them.
         let previousMessages = fitted.count > 1 ? Array(fitted.dropLast()) : []
-        let transcriptEntries = convertMessagesToTranscript(previousMessages)
+        let transcriptEntries = convertMessagesToTranscript(previousMessages, tools: tools)
 
         // Create transcript with conversation history
         let transcript = Transcript(entries: transcriptEntries)
 
-        // Create new session with the conversation transcript
+        // Create new session with the conversation transcript and enabled tools.
         let session = LanguageModelSession(
+            model: model,
+            tools: tools,
             transcript: transcript
         )
 

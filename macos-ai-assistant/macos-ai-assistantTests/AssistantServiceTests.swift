@@ -1,4 +1,5 @@
 import XCTest
+import FoundationModels
 @testable import macos_ai_assistant
 
 final class AssistantServiceTests: XCTestCase {
@@ -100,5 +101,60 @@ final class AssistantServiceTests: XCTestCase {
             fitted.first?.role.lowercased(), "system",
             "System instructions must be preserved and kept first")
         XCTAssertLessThan(fitted.count, messages.count)
+    }
+
+    // MARK: - Tool advertisement in transcript
+
+    /// The model only discovers tools it sees advertised in the transcript's
+    /// `Instructions` entry. Without this the model hallucinates instead of
+    /// calling the tool, so guard that the definitions are attached.
+    func testTranscriptAttachesToolDefinitionsToSystemInstructions() async {
+        let manager = OnDeviceModelManager()
+        let messages = [
+            ChatMessage(role: "system", content: "You are helpful."),
+            ChatMessage(role: "user", content: "Hi"),
+        ]
+        let tools = AssistantToolFactory.makeTools(for: [.currentDate])
+        let entries = await manager.convertMessagesToTranscript(messages, tools: tools)
+
+        var toolCount = 0
+        for entry in entries {
+            if case .instructions(let instructions) = entry {
+                toolCount += instructions.toolDefinitions.count
+            }
+        }
+        XCTAssertEqual(toolCount, 1, "The enabled tool must be advertised exactly once")
+    }
+
+    /// When the conversation has no system message we must still prepend an
+    /// instructions entry so the tools are discoverable.
+    func testTranscriptPrependsInstructionsWhenNoSystemMessage() async {
+        let manager = OnDeviceModelManager()
+        let messages = [ChatMessage(role: "user", content: "What time is it?")]
+        let tools = AssistantToolFactory.makeTools(for: [.currentDate])
+        let entries = await manager.convertMessagesToTranscript(messages, tools: tools)
+
+        var toolCount = 0
+        for entry in entries {
+            if case .instructions(let instructions) = entry {
+                toolCount += instructions.toolDefinitions.count
+            }
+        }
+        XCTAssertEqual(
+            toolCount, 1,
+            "A synthetic instructions entry must carry the tools even without a system message")
+    }
+
+    /// With no tools enabled we should not inject a spurious instructions entry.
+    func testTranscriptWithoutToolsAddsNoInstructionsEntry() async {
+        let manager = OnDeviceModelManager()
+        let messages = [ChatMessage(role: "user", content: "Hi")]
+        let entries = await manager.convertMessagesToTranscript(messages, tools: [])
+
+        var hasInstructions = false
+        for entry in entries {
+            if case .instructions = entry { hasInstructions = true }
+        }
+        XCTAssertFalse(hasInstructions, "No tools means no synthetic instructions entry")
     }
 }

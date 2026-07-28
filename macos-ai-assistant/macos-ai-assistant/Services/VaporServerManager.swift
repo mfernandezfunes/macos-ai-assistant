@@ -232,18 +232,27 @@ class VaporServerManager: ObservableObject {
                     }
                     let currentPrompt = lastMessage.content
 
-                    // Convert previous messages (excluding the last one) to transcript
+                    // Resolve the user-enabled tools once so the same set is
+                    // advertised in the transcript and wired into the session.
+                    let tools = AssistantToolFactory.makeTools(
+                        for: ToolSettings.currentEnabledIDs())
+
+                    // Convert previous messages (excluding the last one) to
+                    // transcript, advertising the tool definitions so the model
+                    // can discover them.
                     let previousMessages =
                         fitted.count > 1 ? Array(fitted.dropLast()) : []
                     let transcriptEntries = await aiManager.convertMessagesToTranscript(
-                        previousMessages)
+                        previousMessages, tools: tools)
 
                     // Create transcript with conversation history
                     let transcript = Transcript(entries: transcriptEntries)
 
-                    // Create new session with the conversation transcript
+                    // Create new session with the conversation transcript and any
+                    // user-enabled tools.
                     let session = LanguageModelSession(
                         model: SystemLanguageModel.default,
+                        tools: tools,
                         transcript: transcript
                     )
 
