@@ -23,8 +23,7 @@ final class AssistantServiceTests: XCTestCase {
 
     func testParseSSELineExtractsContent() {
         let line = #"data: {"choices":[{"delta":{"content":"Hello"}}]}"#
-        let token = AssistantService.parseSSELine(line)
-        XCTAssertEqual(token, "Hello")
+        XCTAssertEqual(AssistantService.parseSSELine(line), .token("Hello"))
     }
 
     func testParseSSELineDoneReturnsNil() {
@@ -38,5 +37,27 @@ final class AssistantServiceTests: XCTestCase {
     func testParseSSELineMissingContentReturnsNil() {
         let line = #"data: {"choices":[{"delta":{}}]}"#
         XCTAssertNil(AssistantService.parseSSELine(line))
+    }
+
+    func testParseSSELineSurfacesServerError() {
+        let line = #"data: {"error": {"message": "Model not available", "type": "unavailable_error"}}"#
+        XCTAssertEqual(AssistantService.parseSSELine(line), .error("Model not available"))
+    }
+
+    func testParseSSELineHandlesEscapedCharactersInError() {
+        // A message containing quotes/backslashes must round-trip when the server
+        // encodes it via JSONEncoder (fix for unescaped SSE error interpolation).
+        let message = #"Bad "input" with \ and newline"#
+        let payload = APIErrorResponse(message: message, type: "internal_error")
+        let json = String(decoding: try! JSONEncoder().encode(payload), as: UTF8.self)
+        XCTAssertEqual(AssistantService.parseSSELine("data: \(json)"), .error(message))
+    }
+
+    func testBuildRequestUsesConfiguredEndpoint() throws {
+        let config = ServerConfiguration(host: "127.0.0.1", port: 9999)
+        let request = try AssistantService(configuration: config)
+            .makeTestableRequest(messages: [ChatMessage(role: "user", content: "Hi")])
+        XCTAssertEqual(
+            request.url?.absoluteString, "http://127.0.0.1:9999/v1/chat/completions")
     }
 }

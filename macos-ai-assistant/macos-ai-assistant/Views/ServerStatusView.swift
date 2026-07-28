@@ -50,7 +50,7 @@ struct ServerStatusView: View {
                 Circle()
                     .fill(serverManager.isRunning ? Color.green : Color.red)
                     .frame(width: 8, height: 8)
-                Text(serverManager.isRunning ? "Server :11535" : "Server stopped")
+                Text(serverManager.isRunning ? "Server :\(ServerConfiguration.default.port)" : "Server stopped")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Toggle("", isOn: toggleBinding)
@@ -65,9 +65,21 @@ struct ServerStatusView: View {
         .background(.bar)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .task {
-            let (available, reason) = await aiManager.isModelAvailable()
-            isModelAvailable = available
-            modelUnavailableReason = reason
+            // Refresh availability periodically so the indicator reflects changes
+            // (e.g. Apple Intelligence being enabled or a model finishing download).
+            while !Task.isCancelled {
+                await refreshAvailability()
+                try? await Task.sleep(for: .seconds(10))
+            }
         }
+        .onChange(of: serverManager.isRunning) {
+            Task { await refreshAvailability() }
+        }
+    }
+
+    private func refreshAvailability() async {
+        let (available, reason) = await aiManager.isModelAvailable()
+        isModelAvailable = available
+        modelUnavailableReason = reason
     }
 }

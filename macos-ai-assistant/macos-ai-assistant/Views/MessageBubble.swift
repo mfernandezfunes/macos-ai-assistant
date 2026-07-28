@@ -6,7 +6,7 @@ struct MessageBubble: View {
     let content: String
     let isStreaming: Bool
 
-    private var isUser: Bool { role == "user" }
+    private var isUser: Bool { MessageRole(rawValueOrUser: role) == .user }
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 8) {
@@ -14,10 +14,9 @@ struct MessageBubble: View {
 
             if !isUser {
                 Circle()
-                    .fill(Color(.windowBackgroundColor))
+                    .fill(Color(.controlBackgroundColor))
                     .overlay(Text("🤖").font(.caption))
                     .frame(width: 26, height: 26)
-                    .alignmentGuide(.bottom) { d in d[.bottom] }
             }
 
             VStack(alignment: isUser ? .trailing : .leading, spacing: 2) {

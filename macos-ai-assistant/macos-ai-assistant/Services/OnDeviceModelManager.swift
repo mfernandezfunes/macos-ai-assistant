@@ -117,12 +117,11 @@ actor OnDeviceModelManager {
                 .serviceUnavailable, reason: reason ?? "Apple Intelligence model is not available")
         }
 
-        guard !messages.isEmpty else {
+        guard let lastMessage = messages.last else {
             throw Abort(.badRequest, reason: "No messages provided")
         }
 
         // Get the last message as the current prompt
-        let lastMessage = messages.last!
         let currentPrompt = lastMessage.content
 
         // Convert previous messages (excluding the last one) to transcript

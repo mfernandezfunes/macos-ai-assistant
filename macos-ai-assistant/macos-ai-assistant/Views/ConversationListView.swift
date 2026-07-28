@@ -38,6 +38,12 @@ struct ConversationListView: View {
     }
 
     private func newConversation() {
+        // Reuse an existing empty conversation instead of stacking up untitled
+        // duplicates when "+" is clicked repeatedly.
+        if let empty = conversations.first(where: { $0.messages.isEmpty }) {
+            selection = empty
+            return
+        }
         let conv = Conversation()
         modelContext.insert(conv)
         try? modelContext.save()

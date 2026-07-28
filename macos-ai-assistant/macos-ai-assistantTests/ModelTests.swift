@@ -32,7 +32,7 @@ final class ModelTests: XCTestCase {
     func testMessageBelongsToConversation() throws {
         let ctx = container.mainContext
         let conv = Conversation(title: "Chat")
-        let msg = Message(role: "user", content: "Hello", conversation: conv)
+        let msg = Message(role: .user, content: "Hello", conversation: conv)
         ctx.insert(conv)
         ctx.insert(msg)
         try ctx.save()
@@ -47,7 +47,7 @@ final class ModelTests: XCTestCase {
     func testCascadeDeleteRemovesMessages() throws {
         let ctx = container.mainContext
         let conv = Conversation(title: "Delete me")
-        let msg = Message(role: "user", content: "Bye", conversation: conv)
+        let msg = Message(role: .user, content: "Bye", conversation: conv)
         ctx.insert(conv)
         ctx.insert(msg)
         try ctx.save()

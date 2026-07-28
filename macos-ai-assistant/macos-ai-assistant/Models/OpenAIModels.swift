@@ -74,11 +74,20 @@ nonisolated struct ChatMessage: Content, Sendable {
         if let stringContent = try? container.decode(String.self, forKey: .content) {
             self.content = stringContent
         } else if let arrayContent = try? container.decode([MessageContent].self, forKey: .content) {
-            // Extract text from structured content array
-            let textParts = arrayContent.compactMap { contentItem in
-                contentItem.type == "text" ? contentItem.text : nil
+            // Extract text from structured content array. The on-device model is
+            // text-only, so non-text parts (e.g. image_url) can't be processed —
+            // surface an explicit placeholder instead of silently dropping them.
+            let parts: [String] = arrayContent.compactMap { contentItem in
+                switch contentItem.type {
+                case "text":
+                    return contentItem.text
+                case "image_url":
+                    return "[image omitted: not supported by the on-device model]"
+                default:
+                    return contentItem.text
+                }
             }
-            self.content = textParts.joined(separator: " ")
+            self.content = parts.joined(separator: " ")
         } else {
             throw DecodingError.typeMismatch(
                 String.self,
@@ -232,5 +241,23 @@ nonisolated struct ChatCompletionDelta: Content, Sendable {
     init(role: String? = nil, content: String? = nil) {
         self.role = role
         self.content = content
+    }
+}
+
+// MARK: - Error Response
+
+/// OpenAI-compatible error payload streamed over SSE. Encoding through
+/// `JSONEncoder` guarantees the message is properly escaped, so reasons
+/// containing quotes/backslashes/newlines can't produce malformed JSON.
+nonisolated struct APIErrorResponse: Content, Sendable {
+    struct APIError: Content, Sendable {
+        let message: String
+        let type: String
+    }
+
+    let error: APIError
+
+    init(message: String, type: String) {
+        self.error = APIError(message: message, type: type)
     }
 }

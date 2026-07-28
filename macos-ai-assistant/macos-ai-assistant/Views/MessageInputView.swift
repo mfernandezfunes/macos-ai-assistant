@@ -13,8 +13,14 @@ struct MessageInputView: View {
                 .padding(10)
                 .background(Color(.controlBackgroundColor))
                 .clipShape(RoundedRectangle(cornerRadius: 16))
-                .onSubmit {
-                    if !isStreaming { submit() }
+                .onKeyPress { keyPress in
+                    // Return sends; Shift+Return inserts a newline.
+                    guard keyPress.key == .return else { return .ignored }
+                    if keyPress.modifiers.contains(.shift) {
+                        return .ignored
+                    }
+                    submit()
+                    return .handled
                 }
 
             Button(action: submit) {

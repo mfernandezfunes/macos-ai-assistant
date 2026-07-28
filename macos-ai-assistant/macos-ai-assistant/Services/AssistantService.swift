@@ -4,10 +4,14 @@ import Foundation
 
 enum AssistantError: Error, LocalizedError {
     case httpError(statusCode: Int)
+    case invalidEndpoint
+    case serverError(message: String)
 
     var errorDescription: String? {
         switch self {
         case .httpError(let code): return "Server returned HTTP \(code)"
+        case .invalidEndpoint: return "Invalid server endpoint URL"
+        case .serverError(let message): return message
         }
     }
 }
@@ -30,26 +34,56 @@ private struct ChatCompletionChunk: Decodable {
     let choices: [Choice]
 }
 
+/// Error frame the local server may stream inside a 200 SSE response.
+private struct SSEErrorPayload: Decodable {
+    struct ErrorBody: Decodable { let message: String }
+    let error: ErrorBody
+}
+
+/// Result of parsing a single SSE line.
+enum SSEEvent: Equatable {
+    case token(String)
+    case error(String)
+}
+
 // MARK: - Service
 
 final class AssistantService {
-    private static let endpointURL = URL(string: "http://127.0.0.1:11535/v1/chat/completions")!
     private static let modelName = "apple-on-device"
+
+    private let configuration: ServerConfiguration
+
+    init(configuration: ServerConfiguration = .default) {
+        self.configuration = configuration
+    }
 
     /// Builds the URLRequest for a chat completion (testable static helper).
     static func buildRequest(messages: [ChatMessage]) throws -> URLRequest {
         try AssistantService().makeRequest(messages: messages)
     }
 
-    /// Parses one SSE line and returns the content token, or nil.
-    static func parseSSELine(_ line: String) -> String? {
-        guard line.hasPrefix("data: ") else { return nil }
-        let payload = String(line.dropFirst(6))
+    /// Instance-level request builder exposed for tests to verify the endpoint
+    /// is derived from the injected `ServerConfiguration`.
+    func makeTestableRequest(messages: [ChatMessage]) throws -> URLRequest {
+        try makeRequest(messages: messages)
+    }
+
+    /// Parses one SSE line into a token, a streamed server error, or nil.
+    static func parseSSELine(_ line: String) -> SSEEvent? {
+        guard line.hasPrefix("data:") else { return nil }
+        // Tolerate both "data: " and "data:" prefixes.
+        let payload = String(line.dropFirst(5)).trimmingCharacters(in: .whitespaces)
         guard payload != "[DONE]" else { return nil }
-        guard let data = payload.data(using: .utf8),
-              let chunk = try? JSONDecoder().decode(ChatCompletionChunk.self, from: data)
+        guard let data = payload.data(using: .utf8) else { return nil }
+
+        // Surface server-streamed error frames instead of silently dropping them.
+        if let errorPayload = try? JSONDecoder().decode(SSEErrorPayload.self, from: data) {
+            return .error(errorPayload.error.message)
+        }
+        guard let chunk = try? JSONDecoder().decode(ChatCompletionChunk.self, from: data),
+              let content = chunk.choices.first?.delta.content
         else { return nil }
-        return chunk.choices.first?.delta.content
+        return .token(content)
     }
 
     /// Streams a response from the local AI server, calling `onToken` on the main actor for each partial token.
@@ -68,8 +102,13 @@ final class AssistantService {
         }
 
         for try await line in asyncBytes.lines {
-            if let token = Self.parseSSELine(line), !token.isEmpty {
-                await onToken(token)
+            switch Self.parseSSELine(line) {
+            case .token(let token):
+                if !token.isEmpty { await onToken(token) }
+            case .error(let message):
+                throw AssistantError.serverError(message: message)
+            case nil:
+                continue
             }
         }
     }
@@ -77,7 +116,10 @@ final class AssistantService {
     // MARK: - Private
 
     private func makeRequest(messages: [ChatMessage]) throws -> URLRequest {
-        var request = URLRequest(url: Self.endpointURL)
+        guard let url = URL(string: configuration.chatCompletionsEndpoint) else {
+            throw AssistantError.invalidEndpoint
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         // The local Apple Intelligence server does not require authentication.

@@ -9,7 +9,7 @@
 
 A small native macOS chat app to explore Apple's on-device Foundation Models framework. The app supports multiple saved conversations with full context restoration when reopening a session.
 
-**Target platform:** macOS 14+ (Sonoma)  
+**Target platform:** macOS 26+ (required by the FoundationModels on-device LLM)  
 **Language:** Swift 6  
 **Framework:** SwiftUI, SwiftData, URLSession  
 **Backend:** Apple Intelligence local server — OpenAI-compatible API at `http://127.0.0.1:11535/v1`, model `apple-on-device`
@@ -91,7 +91,7 @@ macos-ai-assistant/
 
 Wraps `URLSession` HTTP calls to the local OpenAI-compatible server. Responsible for:
 
-1. **Sending messages** — `send(text:messages:onToken:)` async function that POSTs to `/v1/chat/completions` with `stream: true`, parses SSE lines, and calls `onToken` for each partial content chunk.
+1. **Sending messages** — `send(messages:onToken:)` async function that POSTs to `/v1/chat/completions` with `stream: true`, parses SSE lines, and calls `onToken` for each partial content chunk. Server-streamed error frames are surfaced as thrown `AssistantError.serverError`.
 2. **Message history** — the full `[Message]` array from SwiftData is passed as the `messages` array in every request (context is stateless — no session object on the client).
 3. **Error handling** — network errors and non-200 HTTP responses surface as thrown errors to the caller.
 
@@ -105,7 +105,7 @@ Wraps `URLSession` HTTP calls to the local OpenAI-compatible server. Responsible
 ### `ConversationListView`
 
 - Fetches all `Conversation` objects with `@Query(sort: \.createdAt, order: .reverse)`
-- "+" button creates a new empty `Conversation` and selects it
+- "+" button selects the existing empty `Conversation` if one exists, otherwise creates and selects a new one
 - Swipe-to-delete removes the conversation and its messages from SwiftData
 
 ### `MessageBubble`

@@ -20,6 +20,7 @@ class VaporServerManager: ObservableObject {
 
     private static let modelName = "apple-on-device"
     private static var loggingBootstrapped = false
+    private static let logger = Logger(label: "VaporServerManager")
 
     func startServer(configuration: ServerConfiguration) async {
         guard !isRunning else { return }
@@ -40,7 +41,9 @@ class VaporServerManager: ObservableObject {
             self.app = app
 
             // Fix for running Vapor in iOS/macOS app - clear command line arguments
-            app.environment.arguments = [app.environment.arguments[0]]
+            if let executable = app.environment.arguments.first {
+                app.environment.arguments = [executable]
+            }
 
             // Configure routes
             configureRoutes(app)
@@ -49,14 +52,15 @@ class VaporServerManager: ObservableObject {
             app.http.server.configuration.hostname = configuration.host
             app.http.server.configuration.port = configuration.port
 
-            // Start server in background task
-            serverTask = Task {
+            // Start server in background task. If binding fails (e.g. the port is
+            // already in use) reset the running state so the UI reflects reality.
+            serverTask = Task { [weak self] in
                 do {
                     try await app.execute()
                 } catch {
                     await MainActor.run {
-                        self.lastError = error.localizedDescription
-                        self.isRunning = false
+                        self?.lastError = error.localizedDescription
+                        self?.isRunning = false
                     }
                 }
             }
@@ -65,6 +69,8 @@ class VaporServerManager: ObservableObject {
             lastError = nil
 
         } catch {
+            self.app = nil
+            isRunning = false
             lastError = error.localizedDescription
         }
     }
@@ -201,26 +207,28 @@ class VaporServerManager: ObservableObject {
             Task {
                 do {
                     // Check availability first
-                    print("DEBUG: Checking model availability")
                     let (available, reason) = await aiManager.isModelAvailable()
                     guard available else {
-                        let errorData = """
-                            data: {"error": {"message": "\(reason ?? "Model not available")", "type": "unavailable_error"}}
-
-                            data: [DONE]
-
-                            """
+                        let errorData = Self.sseErrorPayload(
+                            message: reason ?? "Model not available",
+                            type: "unavailable_error")
                         try await writer.write(.buffer(ByteBuffer(string: errorData)))
-                        writer.write(.end)
+                        try await writer.write(.end)
                         return
                     }
 
-                    // Get the last message as the current prompt
-                    let lastMessage = chatRequest.messages.last!
+                    // Get the last message as the current prompt. The route guards
+                    // against an empty messages array before this runs.
+                    guard let lastMessage = chatRequest.messages.last else {
+                        let errorData = Self.sseErrorPayload(
+                            message: "No messages provided", type: "invalid_request_error")
+                        try await writer.write(.buffer(ByteBuffer(string: errorData)))
+                        try await writer.write(.end)
+                        return
+                    }
                     let currentPrompt = lastMessage.content
 
                     // Convert previous messages (excluding the last one) to transcript
-                    print("DEBUG: Converting messages to transcript")
                     let previousMessages =
                         chatRequest.messages.count > 1 ? Array(chatRequest.messages.dropLast()) : []
                     let transcriptEntries = await aiManager.convertMessagesToTranscript(
@@ -230,7 +238,6 @@ class VaporServerManager: ObservableObject {
                     let transcript = Transcript(entries: transcriptEntries)
 
                     // Create new session with the conversation transcript
-                    print("DEBUG: Creating language model session")
                     let session = LanguageModelSession(
                         model: SystemLanguageModel.default,
                         transcript: transcript
@@ -258,9 +265,7 @@ class VaporServerManager: ObservableObject {
                     var isFirstChunk = true
 
                     // Iterate through the stream and yield partial responses
-                    print("DEBUG: Starting stream iteration")
                     for try await cumulativeResponse in responseStream {
-                        print("DEBUG: Processing stream chunk")
                         // Calculate the delta (new content since last iteration)
                         let deltaContent = String(cumulativeResponse.content.dropFirst(previousContent.count))
 
@@ -288,11 +293,9 @@ class VaporServerManager: ObservableObject {
 
                         let encoder = JSONEncoder()
                         let jsonData = try encoder.encode(streamResponse)
-                        let sseData = "data: \(String(data: jsonData, encoding: .utf8)!)\n\n"
+                        let sseData = "data: \(String(decoding: jsonData, as: UTF8.self))\n\n"
 
-                        print("DEBUG: Writing SSE data chunk: \(sseData)")
                         try await writer.write(.buffer(ByteBuffer(string: sseData)))
-                        print("DEBUG: Successfully wrote SSE data chunk")
 
                         // Update tracking variables
                         previousContent = cumulativeResponse.content
@@ -319,7 +322,7 @@ class VaporServerManager: ObservableObject {
 
                     let encoder = JSONEncoder()
                     let finalJsonData = try encoder.encode(finalResponse)
-                    let finalSseData = "data: \(String(data: finalJsonData, encoding: .utf8)!)\n\n"
+                    let finalSseData = "data: \(String(decoding: finalJsonData, as: UTF8.self))\n\n"
 
                     try await writer.write(.buffer(ByteBuffer(string: finalSseData)))
 
@@ -327,23 +330,16 @@ class VaporServerManager: ObservableObject {
                     try await writer.write(.buffer(ByteBuffer(string: "data: [DONE]\n\n")))
 
                     // Complete the stream
-                    writer.write(.end)
+                    try await writer.write(.end)
 
                 } catch {
-                    // Print full error and stack trace to server output
-                    print("Error in chat completion stream: \(error)")
-                    print("Error details:")
-                    dump(error)
+                    Self.logger.error("Error in chat completion stream: \(error)")
 
                     // Handle errors by sending error message in SSE format
-                    let errorData = """
-                        data: {"error": {"message": "\(error.localizedDescription)", "type": "internal_error"}}
-
-                        data: [DONE]
-
-                        """
+                    let errorData = Self.sseErrorPayload(
+                        message: error.localizedDescription, type: "internal_error")
                     try? await writer.write(.buffer(ByteBuffer(string: errorData)))
-                    writer.write(.end)
+                    try? await writer.write(.end)
                 }
             }
         })
@@ -351,9 +347,17 @@ class VaporServerManager: ObservableObject {
         return response
     }
 
-    deinit {
-        Task { [app] in
-            try? await app?.asyncShutdown()
+    /// Builds a properly-escaped OpenAI-compatible SSE error frame followed by
+    /// the terminating `[DONE]` sentinel. Encoding through `JSONEncoder` prevents
+    /// quotes/backslashes/newlines in `message` from producing malformed JSON.
+    private static func sseErrorPayload(message: String, type: String) -> String {
+        let payload = APIErrorResponse(message: message, type: type)
+        let json: String
+        if let data = try? JSONEncoder().encode(payload) {
+            json = String(decoding: data, as: UTF8.self)
+        } else {
+            json = #"{"error": {"message": "Unknown error", "type": "internal_error"}}"#
         }
+        return "data: \(json)\n\ndata: [DONE]\n\n"
     }
 }

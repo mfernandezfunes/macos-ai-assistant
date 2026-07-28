@@ -18,12 +18,13 @@ struct ChatView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 8) {
-                        ForEach(conversation.messages.sorted(by: { $0.createdAt < $1.createdAt })) { message in
+                        ForEach(sortedMessages) { message in
                             MessageBubble(role: message.role, content: message.content, isStreaming: false)
                                 .padding(.horizontal, 12)
+                                .id(message.id)
                         }
                         if isStreaming {
-                            MessageBubble(role: "assistant", content: streamingText, isStreaming: true)
+                            MessageBubble(role: MessageRole.assistant.rawValue, content: streamingText, isStreaming: true)
                                 .padding(.horizontal, 12)
                                 .id("streaming")
                         }
@@ -39,6 +40,11 @@ struct ChatView: View {
                 .onChange(of: streamingText) {
                     proxy.scrollTo("streaming", anchor: .bottom)
                 }
+                .onChange(of: conversation.messages.count) {
+                    if let last = sortedMessages.last {
+                        proxy.scrollTo(last.id, anchor: .bottom)
+                    }
+                }
             }
 
             MessageInputView(text: $inputText, isStreaming: isStreaming) {
@@ -46,6 +52,10 @@ struct ChatView: View {
             }
         }
         .navigationTitle(conversation.title.isEmpty ? "New Conversation" : conversation.title)
+    }
+
+    private var sortedMessages: [Message] {
+        conversation.messages.sorted(by: { $0.createdAt < $1.createdAt })
     }
 
     // MARK: - Send
@@ -58,41 +68,64 @@ struct ChatView: View {
         errorMessage = nil
 
         // Persist user message
-        let userMsg = Message(role: "user", content: text, conversation: conversation)
+        let userMsg = Message(role: .user, content: text, conversation: conversation)
         modelContext.insert(userMsg)
-        try? modelContext.save()
+        save()
 
         // Set conversation title from first message
         if conversation.title.isEmpty {
             conversation.title = String(text.prefix(50))
-            try? modelContext.save()
+            save()
         }
 
         // Build messages array for the API
-        let allMessages = conversation.messages
-            .sorted(by: { $0.createdAt < $1.createdAt })
+        let allMessages = sortedMessages
             .map { ChatMessage(role: $0.role, content: $0.content) }
 
         // Stream response
         isStreaming = true
         streamingText = ""
 
+        var failure: String?
         do {
             try await service.send(messages: allMessages) { token in
                 self.streamingText += token
             }
         } catch {
-            errorMessage = "Error: \(error.localizedDescription)"
+            failure = error.localizedDescription
         }
 
-        // Persist assistant message
-        if !streamingText.isEmpty {
-            let assistantMsg = Message(role: "assistant", content: streamingText, conversation: conversation)
-            modelContext.insert(assistantMsg)
-            try? modelContext.save()
-        }
-
+        let finalText = streamingText
         isStreaming = false
         streamingText = ""
+
+        if !finalText.isEmpty {
+            // Persist whatever assistant text was produced.
+            let assistantMsg = Message(role: .assistant, content: finalText, conversation: conversation)
+            modelContext.insert(assistantMsg)
+            save()
+        }
+
+        // Surface the error, and persist a placeholder so a failed turn isn't
+        // silently lost after relaunch.
+        if let failure {
+            errorMessage = "Error: \(failure)"
+            if finalText.isEmpty {
+                let errorMsg = Message(
+                    role: .assistant,
+                    content: "⚠️ Failed to generate a response: \(failure)",
+                    conversation: conversation)
+                modelContext.insert(errorMsg)
+                save()
+            }
+        }
+    }
+
+    private func save() {
+        do {
+            try modelContext.save()
+        } catch {
+            errorMessage = "Failed to save: \(error.localizedDescription)"
+        }
     }
 }

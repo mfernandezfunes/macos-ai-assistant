@@ -1,17 +1,27 @@
 import SwiftUI
 
 struct AboutView: View {
+    private var versionString: String {
+        let info = Bundle.main.infoDictionary
+        let short = info?["CFBundleShortVersionString"] as? String ?? "1.0"
+        let build = info?["CFBundleVersion"] as? String
+        if let build, build != short {
+            return "Version \(short) (\(build))"
+        }
+        return "Version \(short)"
+    }
+
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "brain.head.profile")
                 .font(.system(size: 64))
                 .foregroundStyle(.tint)
 
-            Text("Apple Intelligence Assistant")
+            Text("macOS AI Assistant")
                 .font(.title2)
                 .fontWeight(.semibold)
 
-            Text("Version 1.0")
+            Text(versionString)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
@@ -33,7 +43,7 @@ struct OpenAboutWindowButton: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        Button("About Apple Intelligence Assistant") {
+        Button("About macOS AI Assistant") {
             openWindow(id: "about")
         }
     }
