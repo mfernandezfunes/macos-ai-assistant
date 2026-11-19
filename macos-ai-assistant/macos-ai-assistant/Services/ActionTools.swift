@@ -8,10 +8,13 @@ import IOKit.ps
 
 struct SystemInfoTool: Tool {
     let name = "getSystemInfo"
-    let description = "Reports battery level, free disk space, memory, uptime and macOS version of this Mac. Needs no input."
+    let description = "Returns this Mac's current battery level, free disk space, memory, uptime and macOS version. Use it whenever the user asks about battery, storage, disk space or the state of the computer."
 
     @Generable
-    struct Arguments {}
+    struct Arguments {
+        @Guide(description: "Which information is needed: battery, disk, memory, uptime or all.")
+        var topic: String
+    }
 
     func call(arguments: Arguments) async throws -> String {
         try await ToolGate.run(.systemInfo, detail: "Read battery, disk and memory status") {
