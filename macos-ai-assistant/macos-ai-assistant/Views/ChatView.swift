@@ -1,5 +1,7 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
+import AppKit
 
 @MainActor
 struct ChatView: View {
@@ -12,6 +14,8 @@ struct ChatView: View {
     @State private var errorMessage: String?
     @State private var showingInstructions = false
     @State private var sendStartedAt = Date.distantFuture
+    @State private var attachments: [AttachmentExtractor.Extracted] = []
+    @State private var showingImporter = false
     @StateObject private var toolActivity = ToolActivityCenter.shared
 
     private let service = AssistantService()
@@ -22,7 +26,8 @@ struct ChatView: View {
                 ScrollView {
                     LazyVStack(spacing: 8) {
                         ForEach(sortedMessages) { message in
-                            MessageBubble(role: message.role, content: message.content, isStreaming: false)
+                            MessageBubble(role: message.role, content: message.content, isStreaming: false,
+                                          attachmentNames: message.attachmentNames.split(separator: "\n").map(String.init))
                                 .padding(.horizontal, 12)
                                 .id(message.id)
                         }
@@ -54,7 +59,12 @@ struct ChatView: View {
                 }
             }
 
-            MessageInputView(text: $inputText, isStreaming: isStreaming) {
+            MessageInputView(
+                text: $inputText, isStreaming: isStreaming,
+                attachments: attachments.map(\.name),
+                onAttach: { showingImporter = true },
+                onRemoveAttachment: { attachments.remove(at: $0) }
+            ) {
                 Task { await send() }
             }
         }
@@ -78,6 +88,13 @@ struct ChatView: View {
         } message: { request in
             Text("The assistant wants to: \(request.detail)")
         }
+        .fileImporter(
+            isPresented: $showingImporter,
+            allowedContentTypes: [.pdf, .image, .text, .json, .xml, .sourceCode, .data],
+            allowsMultipleSelection: true
+        ) { result in
+            Task { await attach(result) }
+        }
         .navigationTitle(conversation.title.isEmpty ? "New Conversation" : conversation.title)
         .task(id: conversation.id) {
             // Prewarm the on-device model when a conversation opens so the first
@@ -85,6 +102,15 @@ struct ChatView: View {
             await service.prewarm(instructions: conversation.systemInstructions)
         }
         .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button("Export as Markdown…") { export(markdown: true) }
+                    Button("Export as JSON…") { export(markdown: false) }
+                } label: {
+                    Label("Export", systemImage: "square.and.arrow.up")
+                }
+                .disabled(conversation.messages.isEmpty)
+            }
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     showingInstructions.toggle()
@@ -166,15 +192,20 @@ struct ChatView: View {
     // MARK: - Send
 
     private func send() async {
-        let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
+        var text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let sentAttachments = attachments
+        guard !text.isEmpty || !sentAttachments.isEmpty else { return }
+        if text.isEmpty { text = "Please look at the attached file(s)." }
 
         inputText = ""
+        attachments = []
         errorMessage = nil
         sendStartedAt = Date()
 
         // Persist user message
         let userMsg = Message(role: .user, content: text, conversation: conversation)
+        userMsg.attachmentNames = sentAttachments.map(\.name).joined(separator: "\n")
+        userMsg.attachmentText = AttachmentExtractor.promptBlock(sentAttachments)
         modelContext.insert(userMsg)
         save()
 
@@ -203,7 +234,12 @@ struct ChatView: View {
             allMessages.append(ChatMessage(role: "system", content: instructions))
         }
         allMessages += sortedMessages
-            .map { ChatMessage(role: $0.role, content: $0.content) }
+            .map { message in
+                // Attached file text goes to the model but not into the bubble.
+                let body = message.attachmentText.isEmpty
+                    ? message.content : message.content + "\n\n" + message.attachmentText
+                return ChatMessage(role: message.role, content: body)
+            }
 
         // Stream response
         isStreaming = true
@@ -241,6 +277,36 @@ struct ChatView: View {
                 modelContext.insert(errorMsg)
                 save()
             }
+        }
+    }
+
+    private func attach(_ result: Result<[URL], Error>) async {
+        guard case .success(let urls) = result else { return }
+        for url in urls {
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            do {
+                attachments.append(try await AttachmentExtractor.extract(from: url))
+                errorMessage = nil
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func export(markdown: Bool) {
+        let snapshot = conversation.snapshot
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [markdown ? UTType(filenameExtension: "md") ?? .plainText : .json]
+        panel.nameFieldStringValue = ConversationExport.fileName(for: snapshot) + (markdown ? ".md" : ".json")
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let data = markdown
+                ? Data(ConversationExport.markdown(snapshot).utf8)
+                : try ConversationExport.json(snapshot)
+            try data.write(to: url, options: .atomic)
+        } catch {
+            errorMessage = "Export failed: \(error.localizedDescription)"
         }
     }
 

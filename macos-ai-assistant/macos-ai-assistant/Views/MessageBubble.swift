@@ -5,6 +5,7 @@ struct MessageBubble: View {
     let role: String
     let content: String
     let isStreaming: Bool
+    var attachmentNames: [String] = []
 
     private var isUser: Bool { MessageRole(rawValueOrUser: role) == .user }
 
@@ -21,6 +22,11 @@ struct MessageBubble: View {
 
             VStack(alignment: isUser ? .trailing : .leading, spacing: 2) {
                 if isUser {
+                    ForEach(attachmentNames, id: \.self) { name in
+                        Label(name, systemImage: "paperclip")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     Text(content)
                         .textSelection(.enabled)
                         .padding(.horizontal, 12)

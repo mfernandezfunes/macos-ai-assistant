@@ -21,6 +21,11 @@ final class Message {
     var content: String
     var createdAt: Date
     var conversation: Conversation?
+    /// Names of files attached to this (user) message, joined by newlines.
+    var attachmentNames: String = ""
+    /// Text extracted from the attachments; sent to the model with the message
+    /// but not shown in the bubble.
+    var attachmentText: String = ""
 
     /// Type-safe accessor over the stored `role` string.
     var messageRole: MessageRole {
