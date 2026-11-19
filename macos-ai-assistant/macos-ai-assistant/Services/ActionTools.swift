@@ -8,7 +8,7 @@ import IOKit.ps
 
 struct SystemInfoTool: Tool {
     let name = "getSystemInfo"
-    let description = "Returns this Mac's current battery level, free disk space, memory, uptime and macOS version. Use it whenever the user asks about battery, storage, disk space or the state of the computer."
+    let description = "Returns this Mac's current battery level, free disk space, memory, uptime, network addresses and macOS version. Use it whenever the user asks about battery, storage, disk space or the state of the computer."
 
     @Generable
     struct Arguments {
@@ -38,6 +38,7 @@ enum SystemInfo {
         }
         lines.append("Memory: \(gigabytes(Int64(ProcessInfo.processInfo.physicalMemory))) installed")
         lines.append("Uptime: \(uptimeText(ProcessInfo.processInfo.systemUptime))")
+        lines.append(NetworkInfo.summary())
         return lines.joined(separator: "\n")
     }
 

@@ -52,7 +52,8 @@ final class ToolActivityTests: XCTestCase {
         XCTAssertEqual(
             ToolSettings.currentConfirmationIDs(defaults: defaults),
             [.spotlightSearch, .clipboard, .readFile, .calendar, .reminders,
-             .createReminder, .createEvent, .openItem, .shortcuts, .webPage])
+             .createReminder, .createEvent, .openItem, .shortcuts, .webPage,
+             .contacts, .webSearch, .maps])
         XCTAssertFalse(ToolSettings.currentConfirmationIDs(defaults: defaults).contains(.calculator))
         XCTAssertFalse(ToolSettings.currentConfirmationIDs(defaults: defaults).contains(.systemInfo))
     }

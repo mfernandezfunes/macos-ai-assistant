@@ -20,6 +20,9 @@ enum AssistantToolID: String, CaseIterable, Identifiable, Sendable {
     case openItem
     case shortcuts
     case webPage
+    case contacts
+    case webSearch
+    case maps
 
     var id: String { rawValue }
 
@@ -38,6 +41,9 @@ enum AssistantToolID: String, CaseIterable, Identifiable, Sendable {
         case .openItem: return "Open Apps & Links"
         case .shortcuts: return "Run Shortcuts"
         case .webPage: return "Web Pages"
+        case .contacts: return "Contacts"
+        case .webSearch: return "Web Search"
+        case .maps: return "Maps & Travel Time"
         }
     }
 
@@ -45,7 +51,7 @@ enum AssistantToolID: String, CaseIterable, Identifiable, Sendable {
     /// for approval and the user cannot switch that off.
     var alwaysRequiresApproval: Bool {
         switch self {
-        case .createReminder, .createEvent, .openItem, .shortcuts, .webPage: return true
+        case .createReminder, .createEvent, .openItem, .shortcuts, .webPage, .webSearch: return true
         default: return false
         }
     }
@@ -56,7 +62,7 @@ enum AssistantToolID: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .currentDate, .calculator, .systemInfo: return false
         case .spotlightSearch, .clipboard, .readFile, .calendar, .reminders: return true
-        case .createReminder, .createEvent, .openItem, .shortcuts, .webPage: return true
+        case .createReminder, .createEvent, .openItem, .shortcuts, .webPage, .contacts, .webSearch, .maps: return true
         }
     }
 
@@ -88,6 +94,12 @@ enum AssistantToolID: String, CaseIterable, Identifiable, Sendable {
             return "Lets the assistant run only the Shortcuts you list below, after you confirm."
         case .webPage:
             return "Lets the assistant download and read a public web page (uses the internet), after you confirm."
+        case .contacts:
+            return "Lets the assistant look up a person's phone numbers and emails in your Contacts."
+        case .webSearch:
+            return "Lets the assistant search the web (sends your query to DuckDuckGo), after you confirm."
+        case .maps:
+            return "Lets the assistant look up places and estimate travel time (sends the places to Apple Maps)."
         }
     }
 }
@@ -112,6 +124,9 @@ enum AssistantToolFactory {
             case .openItem: return OpenItemTool()
             case .shortcuts: return RunShortcutTool()
             case .webPage: return WebPageTool()
+            case .contacts: return ContactsTool()
+            case .webSearch: return WebSearchTool()
+            case .maps: return MapsTool()
             }
         }
     }
