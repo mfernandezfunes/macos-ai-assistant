@@ -68,6 +68,12 @@ struct ChatView: View {
             presenting: toolActivity.pendingApproval
         ) { request in
             Button("Allow") { toolActivity.resolve(request.id, approved: true) }
+            if !request.tool.alwaysRequiresApproval {
+                Button("Always Allow") {
+                    ToolSettings.shared.setRequiresConfirmation(request.tool, false)
+                    toolActivity.resolve(request.id, approved: true)
+                }
+            }
             Button("Deny", role: .cancel) { toolActivity.resolve(request.id, approved: false) }
         } message: { request in
             Text("The assistant wants to: \(request.detail)")
