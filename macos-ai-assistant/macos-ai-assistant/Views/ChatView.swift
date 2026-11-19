@@ -11,6 +11,8 @@ struct ChatView: View {
     @State private var isStreaming = false
     @State private var errorMessage: String?
     @State private var showingInstructions = false
+    @State private var sendStartedAt = Date.distantFuture
+    @StateObject private var toolActivity = ToolActivityCenter.shared
 
     private let service = AssistantService()
 
@@ -28,6 +30,10 @@ struct ChatView: View {
                             MessageBubble(role: MessageRole.assistant.rawValue, content: streamingText, isStreaming: true)
                                 .padding(.horizontal, 12)
                                 .id("streaming")
+                        }
+                        ForEach(toolEventsThisTurn) { event in
+                            ToolEventRow(event: event)
+                                .padding(.horizontal, 12)
                         }
                         if let error = errorMessage {
                             Text(error)
@@ -51,6 +57,20 @@ struct ChatView: View {
             MessageInputView(text: $inputText, isStreaming: isStreaming) {
                 Task { await send() }
             }
+        }
+        .alert(
+            "Allow \(toolActivity.pendingApproval?.tool.displayName ?? "tool")?",
+            isPresented: Binding(
+                get: { toolActivity.pendingApproval != nil },
+                set: { if !$0, let id = toolActivity.pendingApproval?.id {
+                    toolActivity.resolve(id, approved: false) } }
+            ),
+            presenting: toolActivity.pendingApproval
+        ) { request in
+            Button("Allow") { toolActivity.resolve(request.id, approved: true) }
+            Button("Deny", role: .cancel) { toolActivity.resolve(request.id, approved: false) }
+        } message: { request in
+            Text("The assistant wants to: \(request.detail)")
         }
         .navigationTitle(conversation.title.isEmpty ? "New Conversation" : conversation.title)
         .task(id: conversation.id) {
@@ -129,6 +149,10 @@ struct ChatView: View {
         .padding(16)
     }
 
+    private var toolEventsThisTurn: [ToolEvent] {
+        toolActivity.events.filter { $0.startedAt >= sendStartedAt }
+    }
+
     private var sortedMessages: [Message] {
         conversation.messages.sorted(by: { $0.createdAt < $1.createdAt })
     }
@@ -141,6 +165,7 @@ struct ChatView: View {
 
         inputText = ""
         errorMessage = nil
+        sendStartedAt = Date()
 
         // Persist user message
         let userMsg = Message(role: .user, content: text, conversation: conversation)
@@ -218,6 +243,43 @@ struct ChatView: View {
             try modelContext.save()
         } catch {
             errorMessage = "Failed to save: \(error.localizedDescription)"
+        }
+    }
+}
+
+/// Compact line showing a tool call the assistant made during this turn.
+private struct ToolEventRow: View {
+    let event: ToolEvent
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: symbol)
+            Text("\(event.tool.displayName): \(event.detail)")
+                .lineLimit(2)
+            Text(statusText).foregroundStyle(.tertiary)
+            Spacer()
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+
+    private var symbol: String {
+        switch event.status {
+        case .awaitingApproval: return "hand.raised"
+        case .running: return "gearshape"
+        case .completed: return "checkmark.circle"
+        case .denied: return "xmark.circle"
+        case .failed: return "exclamationmark.triangle"
+        }
+    }
+
+    private var statusText: String {
+        switch event.status {
+        case .awaitingApproval: return "waiting for approval"
+        case .running: return "running"
+        case .completed: return "done"
+        case .denied: return "denied"
+        case .failed(let message): return "failed: \(message)"
         }
     }
 }

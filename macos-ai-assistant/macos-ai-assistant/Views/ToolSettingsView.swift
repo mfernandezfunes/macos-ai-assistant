@@ -9,13 +9,18 @@ struct ToolSettingsView: View {
         Form {
             Section {
                 ForEach(AssistantToolID.allCases) { tool in
-                    Toggle(isOn: binding(for: tool)) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(tool.displayName)
-                            Text(tool.summary)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Toggle(isOn: binding(for: tool)) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(tool.displayName)
+                                Text(tool.summary)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
+                        Toggle("Ask before each use", isOn: confirmBinding(for: tool))
+                            .font(.caption)
+                            .disabled(!settings.isEnabled(tool))
                     }
                 }
             } header: {
@@ -27,7 +32,14 @@ struct ToolSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 460, height: 260)
+        .frame(width: 460, height: 340)
+    }
+
+    private func confirmBinding(for tool: AssistantToolID) -> Binding<Bool> {
+        Binding(
+            get: { settings.requiresConfirmation(tool) },
+            set: { settings.setRequiresConfirmation(tool, $0) }
+        )
     }
 
     private func binding(for tool: AssistantToolID) -> Binding<Bool> {

@@ -57,10 +57,16 @@ struct CurrentDateTool: Tool {
     }
 
     func call(arguments: Arguments) async throws -> String {
+        try await ToolGate.run(.currentDate, detail: "Read the current date and time") {
+            Self.currentDateTime(timeZoneIdentifier: arguments.timeZoneIdentifier)
+        }
+    }
+
+    private static func currentDateTime(timeZoneIdentifier: String) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .full
         formatter.timeStyle = .long
-        let trimmed = arguments.timeZoneIdentifier.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = timeZoneIdentifier.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty, let tz = TimeZone(identifier: trimmed) {
             formatter.timeZone = tz
         }
@@ -89,7 +95,13 @@ struct SpotlightSearchTool: Tool {
         let term = arguments.query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !term.isEmpty else { return "No search term was provided." }
 
-        let results = await SpotlightSearch.run(term: term, limit: max(1, min(arguments.limit, 10)))
+        return try await ToolGate.run(.spotlightSearch, detail: "Search files for “\(term)”") {
+            await Self.search(term: term, limit: arguments.limit)
+        }
+    }
+
+    private static func search(term: String, limit: Int) async -> String {
+        let results = await SpotlightSearch.run(term: term, limit: max(1, min(limit, 10)))
         guard !results.isEmpty else {
             return """
                 No files matching '\(term)' were found. Note: if the file is in \
