@@ -14,6 +14,12 @@ enum AssistantToolID: String, CaseIterable, Identifiable, Sendable {
     case readFile
     case calendar
     case reminders
+    case systemInfo
+    case createReminder
+    case createEvent
+    case openItem
+    case shortcuts
+    case webPage
 
     var id: String { rawValue }
 
@@ -26,6 +32,21 @@ enum AssistantToolID: String, CaseIterable, Identifiable, Sendable {
         case .readFile: return "Read Files"
         case .calendar: return "Calendar"
         case .reminders: return "Reminders"
+        case .systemInfo: return "System Info"
+        case .createReminder: return "Create Reminders"
+        case .createEvent: return "Create Calendar Events"
+        case .openItem: return "Open Apps & Links"
+        case .shortcuts: return "Run Shortcuts"
+        case .webPage: return "Web Pages"
+        }
+    }
+
+    /// Tools that change something or reach outside the Mac. They always ask
+    /// for approval and the user cannot switch that off.
+    var alwaysRequiresApproval: Bool {
+        switch self {
+        case .createReminder, .createEvent, .openItem, .shortcuts, .webPage: return true
+        default: return false
         }
     }
 
@@ -33,8 +54,9 @@ enum AssistantToolID: String, CaseIterable, Identifiable, Sendable {
     /// the user opts out in settings.
     var requiresApprovalByDefault: Bool {
         switch self {
-        case .currentDate, .calculator: return false
+        case .currentDate, .calculator, .systemInfo: return false
         case .spotlightSearch, .clipboard, .readFile, .calendar, .reminders: return true
+        case .createReminder, .createEvent, .openItem, .shortcuts, .webPage: return true
         }
     }
 
@@ -54,6 +76,18 @@ enum AssistantToolID: String, CaseIterable, Identifiable, Sendable {
             return "Lets the assistant read your upcoming calendar events."
         case .reminders:
             return "Lets the assistant read your incomplete reminders."
+        case .systemInfo:
+            return "Lets the assistant report battery, free disk space, memory and uptime."
+        case .createReminder:
+            return "Lets the assistant add a reminder, after you confirm the details."
+        case .createEvent:
+            return "Lets the assistant add a calendar event, after you confirm the details."
+        case .openItem:
+            return "Lets the assistant open an app, a web link or a document, after you confirm."
+        case .shortcuts:
+            return "Lets the assistant run only the Shortcuts you list below, after you confirm."
+        case .webPage:
+            return "Lets the assistant download and read a public web page (uses the internet), after you confirm."
         }
     }
 }
@@ -72,6 +106,12 @@ enum AssistantToolFactory {
             case .readFile: return ReadFileTool()
             case .calendar: return CalendarEventsTool()
             case .reminders: return RemindersTool()
+            case .systemInfo: return SystemInfoTool()
+            case .createReminder: return CreateReminderTool()
+            case .createEvent: return CreateEventTool()
+            case .openItem: return OpenItemTool()
+            case .shortcuts: return RunShortcutTool()
+            case .webPage: return WebPageTool()
             }
         }
     }

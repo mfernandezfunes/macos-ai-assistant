@@ -51,7 +51,9 @@ final class ToolActivityTests: XCTestCase {
         let defaults = UserDefaults(suiteName: "ToolActivityTests-\(UUID().uuidString)")!
         XCTAssertEqual(
             ToolSettings.currentConfirmationIDs(defaults: defaults),
-            [.spotlightSearch, .clipboard, .readFile, .calendar, .reminders])
+            [.spotlightSearch, .clipboard, .readFile, .calendar, .reminders,
+             .createReminder, .createEvent, .openItem, .shortcuts, .webPage])
         XCTAssertFalse(ToolSettings.currentConfirmationIDs(defaults: defaults).contains(.calculator))
+        XCTAssertFalse(ToolSettings.currentConfirmationIDs(defaults: defaults).contains(.systemInfo))
     }
 }

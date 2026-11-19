@@ -20,7 +20,7 @@ struct ToolSettingsView: View {
                         }
                         Toggle("Ask before each use", isOn: confirmBinding(for: tool))
                             .font(.caption)
-                            .disabled(!settings.isEnabled(tool) || !tool.requiresApprovalByDefault)
+                            .disabled(!settings.isEnabled(tool) || !tool.requiresApprovalByDefault || tool.alwaysRequiresApproval)
                     }
                 }
             } header: {
@@ -30,9 +30,28 @@ struct ToolSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            Section {
+                TextEditor(text: shortcutsBinding)
+                    .font(.body.monospaced())
+                    .frame(height: 70)
+                    .disabled(!settings.isEnabled(.shortcuts))
+            } header: {
+                Text("Allowed Shortcuts")
+            } footer: {
+                Text("One exact shortcut name per line. The assistant can run only these, and always asks first.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
-        .frame(width: 460, height: 560)
+        .frame(width: 460, height: 760)
+    }
+
+    private var shortcutsBinding: Binding<String> {
+        Binding(
+            get: { settings.allowedShortcuts.joined(separator: "\n") },
+            set: { settings.allowedShortcuts = $0.split(separator: "\n").map(String.init) }
+        )
     }
 
     private func confirmBinding(for tool: AssistantToolID) -> Binding<Bool> {

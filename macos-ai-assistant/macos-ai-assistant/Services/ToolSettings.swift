@@ -10,6 +10,13 @@ final class ToolSettings: ObservableObject {
     private static let defaultsKey = "enabledAssistantTools"
     private static let skipConfirmationKey = "skipConfirmationAssistantTools"
 
+    private static let shortcutsKey = "allowedShortcutNames"
+
+    /// Shortcut names the model may run. Empty by default (nothing allowed).
+    @Published var allowedShortcuts: [String] {
+        didSet { defaults.set(allowedShortcuts, forKey: Self.shortcutsKey) }
+    }
+
     @Published var enabled: Set<AssistantToolID> {
         didSet { persist() }
     }
@@ -30,6 +37,7 @@ final class ToolSettings: ObservableObject {
             self.enabled = [.currentDate]
         }
         self.skipConfirmation = Self.currentSkippedConfirmationIDs(defaults: defaults)
+        self.allowedShortcuts = Self.currentAllowedShortcuts(defaults: defaults)
     }
 
     private let defaults: UserDefaults
@@ -37,7 +45,7 @@ final class ToolSettings: ObservableObject {
     func isEnabled(_ id: AssistantToolID) -> Bool { enabled.contains(id) }
 
     func requiresConfirmation(_ id: AssistantToolID) -> Bool {
-        id.requiresApprovalByDefault && !skipConfirmation.contains(id)
+        id.alwaysRequiresApproval || (id.requiresApprovalByDefault && !skipConfirmation.contains(id))
     }
 
     func setRequiresConfirmation(_ id: AssistantToolID, _ on: Bool) {
@@ -71,6 +79,14 @@ final class ToolSettings: ObservableObject {
     /// the user hasn't opted out of.
     nonisolated static func currentConfirmationIDs(defaults: UserDefaults = .standard) -> Set<AssistantToolID> {
         let skipped = currentSkippedConfirmationIDs(defaults: defaults)
-        return Set(AssistantToolID.allCases.filter { $0.requiresApprovalByDefault && !skipped.contains($0) })
+        return Set(AssistantToolID.allCases.filter {
+            $0.alwaysRequiresApproval || ($0.requiresApprovalByDefault && !skipped.contains($0))
+        })
+    }
+
+    nonisolated static func currentAllowedShortcuts(defaults: UserDefaults = .standard) -> [String] {
+        (defaults.array(forKey: shortcutsKey) as? [String] ?? [])
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
     }
 }
