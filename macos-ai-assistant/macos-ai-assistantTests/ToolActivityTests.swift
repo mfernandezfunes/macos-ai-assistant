@@ -49,6 +49,9 @@ final class ToolActivityTests: XCTestCase {
 
     func testSpotlightRequiresConfirmationByDefault() {
         let defaults = UserDefaults(suiteName: "ToolActivityTests-\(UUID().uuidString)")!
-        XCTAssertEqual(ToolSettings.currentConfirmationIDs(defaults: defaults), [.spotlightSearch])
+        XCTAssertEqual(
+            ToolSettings.currentConfirmationIDs(defaults: defaults),
+            [.spotlightSearch, .clipboard, .readFile, .calendar, .reminders])
+        XCTAssertFalse(ToolSettings.currentConfirmationIDs(defaults: defaults).contains(.calculator))
     }
 }

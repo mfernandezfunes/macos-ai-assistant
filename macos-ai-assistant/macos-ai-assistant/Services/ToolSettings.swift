@@ -8,17 +8,16 @@ final class ToolSettings: ObservableObject {
     static let shared = ToolSettings()
 
     private static let defaultsKey = "enabledAssistantTools"
-    private static let confirmationKey = "confirmAssistantTools"
-
-    /// Tools that ask for permission before each call unless the user opts out.
-    static let defaultConfirmationIDs: Set<AssistantToolID> = [.spotlightSearch]
-
-    @Published var requireConfirmation: Set<AssistantToolID> {
-        didSet { defaults.set(requireConfirmation.map(\.rawValue), forKey: Self.confirmationKey) }
-    }
+    private static let skipConfirmationKey = "skipConfirmationAssistantTools"
 
     @Published var enabled: Set<AssistantToolID> {
         didSet { persist() }
+    }
+
+    /// Tools whose per-call approval the user has switched off. Stored as
+    /// opt-outs so newly added sensitive tools prompt by default.
+    @Published var skipConfirmation: Set<AssistantToolID> {
+        didSet { defaults.set(skipConfirmation.map(\.rawValue), forKey: Self.skipConfirmationKey) }
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -30,17 +29,19 @@ final class ToolSettings: ObservableObject {
             // since it exposes local files to the model).
             self.enabled = [.currentDate]
         }
-        self.requireConfirmation = Self.currentConfirmationIDs(defaults: defaults)
+        self.skipConfirmation = Self.currentSkippedConfirmationIDs(defaults: defaults)
     }
 
     private let defaults: UserDefaults
 
     func isEnabled(_ id: AssistantToolID) -> Bool { enabled.contains(id) }
 
-    func requiresConfirmation(_ id: AssistantToolID) -> Bool { requireConfirmation.contains(id) }
+    func requiresConfirmation(_ id: AssistantToolID) -> Bool {
+        id.requiresApprovalByDefault && !skipConfirmation.contains(id)
+    }
 
     func setRequiresConfirmation(_ id: AssistantToolID, _ on: Bool) {
-        if on { requireConfirmation.insert(id) } else { requireConfirmation.remove(id) }
+        if on { skipConfirmation.remove(id) } else { skipConfirmation.insert(id) }
     }
 
     func setEnabled(_ id: AssistantToolID, _ on: Bool) {
@@ -61,12 +62,15 @@ final class ToolSettings: ObservableObject {
         return Set(stored.compactMap(AssistantToolID.init(rawValue:)))
     }
 
-    /// Tools that must be approved by the user on each call. Defaults to the
-    /// ones that expose local data (Spotlight).
-    nonisolated static func currentConfirmationIDs(defaults: UserDefaults = .standard) -> Set<AssistantToolID> {
-        guard let stored = defaults.array(forKey: confirmationKey) as? [String] else {
-            return defaultConfirmationIDs
-        }
+    nonisolated private static func currentSkippedConfirmationIDs(defaults: UserDefaults) -> Set<AssistantToolID> {
+        let stored = defaults.array(forKey: skipConfirmationKey) as? [String] ?? []
         return Set(stored.compactMap(AssistantToolID.init(rawValue:)))
+    }
+
+    /// Tools that must be approved by the user on each call: sensitive tools
+    /// the user hasn't opted out of.
+    nonisolated static func currentConfirmationIDs(defaults: UserDefaults = .standard) -> Set<AssistantToolID> {
+        let skipped = currentSkippedConfirmationIDs(defaults: defaults)
+        return Set(AssistantToolID.allCases.filter { $0.requiresApprovalByDefault && !skipped.contains($0) })
     }
 }

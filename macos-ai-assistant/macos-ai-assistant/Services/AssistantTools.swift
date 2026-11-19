@@ -8,6 +8,11 @@ import FoundationModels
 enum AssistantToolID: String, CaseIterable, Identifiable, Sendable {
     case currentDate
     case spotlightSearch
+    case calculator
+    case clipboard
+    case readFile
+    case calendar
+    case reminders
 
     var id: String { rawValue }
 
@@ -15,6 +20,20 @@ enum AssistantToolID: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .currentDate: return "Date & Time"
         case .spotlightSearch: return "Spotlight File Search"
+        case .calculator: return "Calculator"
+        case .clipboard: return "Clipboard"
+        case .readFile: return "Read Files"
+        case .calendar: return "Calendar"
+        case .reminders: return "Reminders"
+        }
+    }
+
+    /// Tools that expose personal data ask for approval on every call unless
+    /// the user opts out in settings.
+    var requiresApprovalByDefault: Bool {
+        switch self {
+        case .currentDate, .calculator: return false
+        case .spotlightSearch, .clipboard, .readFile, .calendar, .reminders: return true
         }
     }
 
@@ -24,6 +43,16 @@ enum AssistantToolID: String, CaseIterable, Identifiable, Sendable {
             return "Lets the assistant read the current date and time."
         case .spotlightSearch:
             return "Lets the assistant search files on your Mac with Spotlight."
+        case .calculator:
+            return "Lets the assistant evaluate arithmetic exactly instead of guessing."
+        case .clipboard:
+            return "Lets the assistant read the text currently on your clipboard."
+        case .readFile:
+            return "Lets the assistant read a text file in your home folder (for example one found by search)."
+        case .calendar:
+            return "Lets the assistant read your upcoming calendar events."
+        case .reminders:
+            return "Lets the assistant read your incomplete reminders."
         }
     }
 }
@@ -37,6 +66,11 @@ enum AssistantToolFactory {
             switch id {
             case .currentDate: return CurrentDateTool()
             case .spotlightSearch: return SpotlightSearchTool()
+            case .calculator: return CalculatorTool()
+            case .clipboard: return ClipboardTool()
+            case .readFile: return ReadFileTool()
+            case .calendar: return CalendarEventsTool()
+            case .reminders: return RemindersTool()
             }
         }
     }

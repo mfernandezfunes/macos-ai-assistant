@@ -20,7 +20,7 @@ struct ToolSettingsView: View {
                         }
                         Toggle("Ask before each use", isOn: confirmBinding(for: tool))
                             .font(.caption)
-                            .disabled(!settings.isEnabled(tool))
+                            .disabled(!settings.isEnabled(tool) || !tool.requiresApprovalByDefault)
                     }
                 }
             } header: {
@@ -32,7 +32,7 @@ struct ToolSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 460, height: 340)
+        .frame(width: 460, height: 560)
     }
 
     private func confirmBinding(for tool: AssistantToolID) -> Binding<Bool> {
