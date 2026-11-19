@@ -217,56 +217,13 @@ class VaporServerManager: ObservableObject {
                         return
                     }
 
-                    // Trim old turns so instructions + prompts fit the context
-                    // window before building the transcript.
-                    let fitted = await aiManager.fitToContextWindow(chatRequest.messages)
-
-                    // Get the last message as the current prompt. The route guards
-                    // against an empty messages array before this runs.
-                    guard let lastMessage = fitted.last else {
-                        let errorData = Self.sseErrorPayload(
-                            message: "No messages provided", type: "invalid_request_error")
-                        try await writer.write(.buffer(ByteBuffer(string: errorData)))
-                        try await writer.write(.end)
-                        return
-                    }
-                    let currentPrompt = lastMessage.content
-
-                    // Resolve the user-enabled tools once so the same set is
-                    // advertised in the transcript and wired into the session.
-                    let tools = AssistantToolFactory.makeTools(
-                        for: ToolSettings.currentEnabledIDs())
-
-                    // Convert previous messages (excluding the last one) to
-                    // transcript, advertising the tool definitions so the model
-                    // can discover them.
-                    let previousMessages =
-                        fitted.count > 1 ? Array(fitted.dropLast()) : []
-                    let transcriptEntries = await aiManager.convertMessagesToTranscript(
-                        previousMessages, tools: tools)
-
-                    // Create transcript with conversation history
-                    let transcript = Transcript(entries: transcriptEntries)
-
-                    // Create new session with the conversation transcript and any
-                    // user-enabled tools.
-                    let session = LanguageModelSession(
-                        model: SystemLanguageModel.default,
-                        tools: tools,
-                        transcript: transcript
-                    )
-
-                    // Create generation options
-                    var options = GenerationOptions()
-                    if let temp = chatRequest.temperature {
-                        options = GenerationOptions(
-                            temperature: temp, maximumResponseTokens: chatRequest.maxTokens)
-                    } else if let maxTokens = chatRequest.maxTokens {
-                        options = GenerationOptions(maximumResponseTokens: maxTokens)
-                    }
-
-                    // Get the streaming response from the session
-                    let responseStream = session.streamResponse(to: currentPrompt, options: options)
+                    // Shared with the non-streaming path: trims history, wires
+                    // tools, and builds the session.
+                    let prepared = try await aiManager.prepareSession(for: chatRequest.messages)
+                    let options = OnDeviceModelManager.makeOptions(
+                        temperature: chatRequest.temperature, maxTokens: chatRequest.maxTokens)
+                    let responseStream = prepared.session.streamResponse(
+                        to: prepared.prompt, options: options)
 
                     // Response metadata
                     let responseId = "chatcmpl-\(UUID().uuidString)"
@@ -348,8 +305,9 @@ class VaporServerManager: ObservableObject {
                     Self.logger.error("Error in chat completion stream: \(error)")
 
                     // Handle errors by sending error message in SSE format
+                    let failure = OnDeviceModelManager.apiFailure(for: error)
                     let errorData = Self.sseErrorPayload(
-                        message: error.localizedDescription, type: "internal_error")
+                        message: failure.message, type: failure.type)
                     try? await writer.write(.buffer(ByteBuffer(string: errorData)))
                     try? await writer.write(.end)
                 }

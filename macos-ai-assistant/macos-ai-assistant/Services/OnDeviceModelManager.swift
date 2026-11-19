@@ -17,9 +17,10 @@ struct ConversationTitle {
 actor OnDeviceModelManager {
     private let model: SystemLanguageModel
 
-    /// The system model's context window is ~4,096 tokens shared across
-    /// instructions + prompts + outputs. We trim older turns to stay under it
-    /// and reserve headroom for the response.
+    /// Fallback context window (~4,096 tokens shared across instructions +
+    /// prompts + outputs) used when the model can't report its own size. At
+    /// request time we prefer `SystemLanguageModel.contextSize`. We trim older
+    /// turns to stay under it and reserve headroom for the response.
     static let contextTokenLimit = 4_096
     static let reservedResponseTokens = 1_024
 
@@ -39,9 +40,10 @@ actor OnDeviceModelManager {
     /// turns (including the current prompt). Preserves ordering.
     func fitToContextWindow(
         _ messages: [ChatMessage],
-        reservingTokens: Int = OnDeviceModelManager.reservedResponseTokens
+        reservingTokens: Int = OnDeviceModelManager.reservedResponseTokens,
+        contextLimit: Int = OnDeviceModelManager.contextTokenLimit
     ) -> [ChatMessage] {
-        let budget = Self.contextTokenLimit - reservingTokens
+        let budget = contextLimit - reservingTokens
         guard budget > 0, !messages.isEmpty else { return messages }
 
         // System messages steer every turn and are small — always keep them.
@@ -223,74 +225,148 @@ actor OnDeviceModelManager {
         return entries
     }
 
+    // MARK: - Shared session preparation
+
+    /// A ready-to-use session plus the prompt to send it. Shared by the
+    /// streaming and non-streaming paths so both build requests identically.
+    struct PreparedRequest {
+        let session: LanguageModelSession
+        let prompt: String
+    }
+
+    /// Trims history to the model's real context window, advertises the
+    /// user-enabled tools, and builds a session seeded with the prior turns.
+    func prepareSession(for messages: [ChatMessage]) async throws -> PreparedRequest {
+        guard messages.last != nil else {
+            throw Abort(.badRequest, reason: "No messages provided")
+        }
+
+        // The tools are resolved once so the same set is advertised in the
+        // transcript and wired into the session.
+        let tools = AssistantToolFactory.makeTools(for: ToolSettings.currentEnabledIDs())
+
+        let fitted = await fitUsingModelTokenCounts(messages, tools: tools)
+        guard let lastMessage = fitted.last else {
+            throw Abort(.badRequest, reason: "No messages provided")
+        }
+
+        // Everything but the last message becomes transcript history; the last
+        // one is the current prompt.
+        let previous = fitted.count > 1 ? Array(fitted.dropLast()) : []
+        let transcript = Transcript(
+            entries: convertMessagesToTranscript(previous, tools: tools))
+
+        let session = LanguageModelSession(model: model, tools: tools, transcript: transcript)
+        return PreparedRequest(session: session, prompt: lastMessage.content)
+    }
+
+    /// Heuristic trim first (cheap), then — on macOS 26.4+ — refine with the
+    /// model's exact token counts, dropping the oldest turns until it fits.
+    private func fitUsingModelTokenCounts(
+        _ messages: [ChatMessage], tools: [any Tool]
+    ) async -> [ChatMessage] {
+        let limit = model.contextSize
+        var fitted = fitToContextWindow(messages, contextLimit: limit)
+
+        guard #available(macOS 26.4, *) else { return fitted }
+        let budget = limit - Self.reservedResponseTokens
+        guard budget > 0 else { return fitted }
+
+        while true {
+            let entries = convertMessagesToTranscript(fitted, tools: tools)
+            guard let count = try? await model.tokenCount(for: entries), count > budget else {
+                break  // fits, or the count is unavailable — keep what we have
+            }
+            // Drop the oldest non-system message, but never the current prompt.
+            let conversational = fitted.indices.filter { fitted[$0].role.lowercased() != "system" }
+            guard conversational.count > 1, let oldest = conversational.first else { break }
+            fitted.remove(at: oldest)
+        }
+        return fitted
+    }
+
+    /// Builds generation options from the optional OpenAI-style parameters.
+    static func makeOptions(temperature: Double?, maxTokens: Int?) -> GenerationOptions {
+        if let temperature {
+            return GenerationOptions(temperature: temperature, maximumResponseTokens: maxTokens)
+        } else if let maxTokens {
+            return GenerationOptions(maximumResponseTokens: maxTokens)
+        }
+        return GenerationOptions()
+    }
+
+    // MARK: - Error mapping
+
+    /// An HTTP-facing description of a model failure.
+    struct APIFailure {
+        let status: HTTPResponseStatus
+        let type: String
+        let message: String
+    }
+
+    /// Maps FoundationModels errors to meaningful HTTP statuses and OpenAI-style
+    /// error types instead of a blanket 422/500.
+    static func apiFailure(for error: Error) -> APIFailure {
+        if let abort = error as? AbortError {
+            return APIFailure(
+                status: abort.status, type: "invalid_request_error", message: abort.reason)
+        }
+        if let error = error as? LanguageModelSession.GenerationError {
+            let message = error.localizedDescription
+            switch error {
+            case .exceededContextWindowSize:
+                return APIFailure(
+                    status: .badRequest, type: "context_length_exceeded",
+                    message: "The conversation is too long for the on-device model. "
+                        + "Start a new chat or shorten the message. (\(message))")
+            case .guardrailViolation:
+                return APIFailure(
+                    status: .unprocessableEntity, type: "content_filter",
+                    message: "Apple's safety guardrails blocked this request. Try rephrasing. (\(message))")
+            case .refusal:
+                return APIFailure(
+                    status: .unprocessableEntity, type: "refusal", message: message)
+            case .unsupportedLanguageOrLocale:
+                return APIFailure(
+                    status: .badRequest, type: "unsupported_language",
+                    message: "The on-device model doesn't support this language. (\(message))")
+            case .rateLimited, .concurrentRequests:
+                return APIFailure(
+                    status: .tooManyRequests, type: "rate_limit_exceeded", message: message)
+            case .assetsUnavailable:
+                return APIFailure(
+                    status: .serviceUnavailable, type: "unavailable_error",
+                    message: "The on-device model assets aren't available yet. (\(message))")
+            default:
+                return APIFailure(
+                    status: .unprocessableEntity, type: "generation_error", message: message)
+            }
+        }
+        return APIFailure(
+            status: .internalServerError, type: "internal_error",
+            message: "Error generating response: \(error.localizedDescription)")
+    }
+
     /// Generate a response for the given messages with conversation context
     func generateResponse(
         for messages: [ChatMessage], temperature: Double? = nil, maxTokens: Int? = nil
     ) async throws -> String {
-        // Check availability first
         let (available, reason) = isModelAvailable()
         guard available else {
             throw Abort(
                 .serviceUnavailable, reason: reason ?? "Apple Intelligence model is not available")
         }
 
-        guard messages.last != nil else {
-            throw Abort(.badRequest, reason: "No messages provided")
-        }
-
-        // Trim old turns so instructions + prompts fit the context window.
-        let fitted = fitToContextWindow(messages)
-        guard let lastMessage = fitted.last else {
-            throw Abort(.badRequest, reason: "No messages provided")
-        }
-
-        // Get the last message as the current prompt
-        let currentPrompt = lastMessage.content
-
-        // Resolve the user-enabled tools once so the same set is advertised in
-        // the transcript and wired into the session.
-        let tools = AssistantToolFactory.makeTools(for: ToolSettings.currentEnabledIDs())
-
-        // Convert previous messages (excluding the last one) to transcript,
-        // advertising the tool definitions so the model can discover them.
-        let previousMessages = fitted.count > 1 ? Array(fitted.dropLast()) : []
-        let transcriptEntries = convertMessagesToTranscript(previousMessages, tools: tools)
-
-        // Create transcript with conversation history
-        let transcript = Transcript(entries: transcriptEntries)
-
-        // Create new session with the conversation transcript and enabled tools.
-        let session = LanguageModelSession(
-            model: model,
-            tools: tools,
-            transcript: transcript
-        )
-
+        let prepared = try await prepareSession(for: messages)
         do {
-            // Create generation options if temperature is specified
-            var options = GenerationOptions()
-            if let temp = temperature {
-                options = GenerationOptions(temperature: temp, maximumResponseTokens: maxTokens)
-            } else if let maxTokens = maxTokens {
-                options = GenerationOptions(maximumResponseTokens: maxTokens)
-            }
-
-            // Generate response using the current prompt
-            let response = try await session.respond(
-                to: currentPrompt,
-                options: options
+            let response = try await prepared.session.respond(
+                to: prepared.prompt,
+                options: Self.makeOptions(temperature: temperature, maxTokens: maxTokens)
             )
-
-            let content = response.content
-            return content
-        } catch let error as LanguageModelSession.GenerationError {
-            // Model-side failures (guardrail violations, context overflow, etc.)
-            // are client-facing problems, not internal server errors.
-            throw Abort(.unprocessableEntity, reason: error.localizedDescription)
+            return response.content
         } catch {
-            throw Abort(
-                .internalServerError,
-                reason: "Error generating response: \(error.localizedDescription)")
+            let failure = Self.apiFailure(for: error)
+            throw Abort(failure.status, reason: failure.message)
         }
     }
 

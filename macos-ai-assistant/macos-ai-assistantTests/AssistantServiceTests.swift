@@ -1,5 +1,6 @@
 import XCTest
 import FoundationModels
+import Vapor
 @testable import macos_ai_assistant
 
 final class AssistantServiceTests: XCTestCase {
@@ -179,5 +180,30 @@ final class AssistantServiceTests: XCTestCase {
             name: "README.md", path: home + "/Documents/README.md")
         let ranked = SpotlightSearch.rank([inLibrary, inDocuments], term: "README")
         XCTAssertEqual(ranked.first?.path, home + "/Documents/README.md")
+    }
+
+    // MARK: - Error mapping & options
+
+    func testApiFailureMapsAbortKeepingStatus() {
+        let failure = OnDeviceModelManager.apiFailure(
+            for: Abort(.serviceUnavailable, reason: "not ready"))
+        XCTAssertEqual(failure.status, .serviceUnavailable)
+        XCTAssertEqual(failure.message, "not ready")
+    }
+
+    func testApiFailureMapsUnknownErrorsTo500() {
+        struct Boom: Error {}
+        let failure = OnDeviceModelManager.apiFailure(for: Boom())
+        XCTAssertEqual(failure.status, .internalServerError)
+        XCTAssertEqual(failure.type, "internal_error")
+    }
+
+    func testMakeOptionsAppliesTemperatureAndMaxTokens() {
+        let both = OnDeviceModelManager.makeOptions(temperature: 0.5, maxTokens: 100)
+        XCTAssertEqual(both.temperature, 0.5)
+        XCTAssertEqual(both.maximumResponseTokens, 100)
+        let onlyMax = OnDeviceModelManager.makeOptions(temperature: nil, maxTokens: 50)
+        XCTAssertNil(onlyMax.temperature)
+        XCTAssertEqual(onlyMax.maximumResponseTokens, 50)
     }
 }
