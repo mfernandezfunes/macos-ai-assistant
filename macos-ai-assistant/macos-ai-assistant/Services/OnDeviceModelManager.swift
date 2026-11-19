@@ -241,9 +241,14 @@ actor OnDeviceModelManager {
             throw Abort(.badRequest, reason: "No messages provided")
         }
 
-        // The tools are resolved once so the same set is advertised in the
-        // transcript and wired into the session.
-        let tools = AssistantToolFactory.makeTools(for: ToolSettings.currentEnabledIDs())
+        // Of the user-enabled tools, let the router pick the ones this message
+        // needs. The same set is advertised in the transcript and wired into
+        // the session.
+        let userMessages = messages.filter { $0.role.lowercased() == "user" }.map(\.content)
+        let routed = await ToolRouter.select(
+            model: model, recentUserMessages: userMessages,
+            enabled: ToolSettings.currentEnabledIDs())
+        let tools = AssistantToolFactory.makeTools(for: Set(routed))
 
         let fitted = await fitUsingModelTokenCounts(messages, tools: tools)
         guard let lastMessage = fitted.last else {

@@ -5,6 +5,7 @@ import FoundationModels
 
 /// Stable identifiers for the built-in tools the assistant can use. Persisted
 /// (as raw strings) to remember which tools the user enabled.
+@Generable
 enum AssistantToolID: String, CaseIterable, Identifiable, Sendable {
     case currentDate
     case spotlightSearch

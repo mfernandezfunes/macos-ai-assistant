@@ -10,7 +10,7 @@ import FoundationModels
 /// uncatchable Objective-C exceptions on malformed input.
 struct CalculatorTool: Tool {
     let name = "calculate"
-    let description = "Evaluates an arithmetic expression exactly. Supports + - * / % ^ and parentheses."
+    let description = "Evaluates an arithmetic expression exactly. Always use it for any calculation instead of computing in your head. Supports + - * / % ^ and parentheses."
 
     @Generable
     struct Arguments {
@@ -233,11 +233,11 @@ enum EventStore {
 
 struct CalendarEventsTool: Tool {
     let name = "getCalendarEvents"
-    let description = "Lists the user's upcoming calendar events."
+    let description = "Lists the user's upcoming calendar events. Call it directly whenever the user asks about their schedule, agenda or meetings."
 
     @Generable
     struct Arguments {
-        @Guide(description: "How many days ahead to look, starting now.", .range(1...30))
+        @Guide(description: "How many days ahead to look, starting now. Use 7 unless the user names a period. Never ask the user for this.", .range(1...30))
         var daysAhead: Int
     }
 
@@ -271,16 +271,15 @@ struct CalendarEventsTool: Tool {
 
 struct RemindersTool: Tool {
     let name = "getReminders"
-    let description = "Lists the user's incomplete reminders."
+    let description = "Lists the user's incomplete reminders (to-dos). Call it directly whenever the user asks about their reminders or to-do list; it needs no input."
 
     @Generable
-    struct Arguments {
-        @Guide(description: "Maximum number of reminders to return.", .range(1...20))
-        var limit: Int
-    }
+    struct Arguments {}
+
+    static let limit = 20
 
     func call(arguments: Arguments) async throws -> String {
-        let limit = max(1, min(arguments.limit, 20))
+        let limit = Self.limit
         return try await ToolGate.run(.reminders, detail: "Read incomplete reminders") {
             let store = EventStore.shared
             guard (try? await store.requestFullAccessToReminders()) == true else {
